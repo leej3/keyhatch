@@ -32,13 +32,20 @@ future retrieval, not remote use.
 
 ## Milestones and acceptance gates
 
+Local pilot update: authenticated
+app/CLI IPC, persistent per-credential CLI approval, run/Git interfaces,
+versioned local installation and transport tests are implemented.
+The live selected-host cutover remains conditional on human approval and passing
+the delivery/revocation/restart checks in LOCAL-PILOT.md.
+
 2026-10-15 update: the owner requested a selected real-credential development
 test after the synthetic hardware round trip succeeded.
 A private-pipe import, encrypted file store, native unlock, encrypted history
 and read-only identity test now exist (see REAL-DATA.md).
 This is a limited experimental path under the documented same-user threat
 boundary, not completion of the production gates below.
-Existing agent helpers and the original vault remain unchanged.
+Existing agent helpers and the original vault remain unchanged until that
+cutover.
 
 ### 1. Foundation (this repository)
 

@@ -13,6 +13,7 @@ public struct CredentialRecord: Codable {
     public let fetchedAt: TimeInterval
     public let expiresAt: TimeInterval
     public var history: [CredentialHistory] = []
+    public var brokerApproval: BrokerApproval?
 
     public func validate(now: Date = Date()) throws {
         guard !host.isEmpty, host.count <= 253, host == host.lowercased(),
@@ -34,6 +35,18 @@ public struct CredentialRecord: Codable {
     public mutating func record(_ action: String, now: Date = Date()) {
         history.append(CredentialHistory(date: now, action: action))
         history = Array(history.suffix(200))
+    }
+}
+
+public struct BrokerApproval: Codable {
+    public let clientHash: String
+    public let expiresAt: TimeInterval
+    public init(clientHash: String, expiresAt: TimeInterval) {
+        self.clientHash = clientHash; self.expiresAt = expiresAt
+    }
+    public func permits(clientHash: String, credentialExpiry: TimeInterval, now: Date = Date()) -> Bool {
+        LocalIPC.validHash(self.clientHash) && self.clientHash == clientHash &&
+            expiresAt.isFinite && expiresAt <= credentialExpiry && now.timeIntervalSince1970 < expiresAt
     }
 }
 

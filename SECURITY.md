@@ -6,11 +6,15 @@ unrestricted process running as your macOS user.
 
 ## Known limits
 
-- No authenticated agent IPC is implemented.
-  Demo client labels are not proof of identity.
-  Do not enable a credential socket based on those labels.
-- The development app is ad-hoc signed, not sandboxed/notarized or independently
-  audited.
+- IPC authenticates same-user peers by kernel audit token and pinned running
+  code hash in both directions.
+  Approval covers the installed CLI build, not a distinct agent, chat or model;
+  any agent under that user can invoke the CLI.
+  Demo client labels are still not identity.
+  Source/deployment modification by an unrestricted same-user attacker remains
+  outside the boundary.
+- The local app/CLI use hardened ad-hoc signing, not sandboxing, notarization or
+  an independent audit.
   Same-user code can modify the executable or state.
   Hardware wrapping does not solve software tampering while unlocked.
 - AES keys and transient plaintext exist in application memory.
@@ -25,6 +29,14 @@ unrestricted process running as your macOS user.
   the cache inaccessible.
   Never silently regenerate a key over existing data.
 - App Store integration and direct Apple Passwords ingestion remain unverified.
+- The pilot holds one selected credential at a time and retains only the latest
+  200 audit events per credential.
+  Expired records cannot yet be opened in a metadata-only review mode.
+  This is not a complete incident-response inventory.
+- A release audit event records authorization immediately before the socket
+  send; it does not prove receipt by the client.
+  Once bytes have been sent, subsequent lock/revocation cannot retract them or
+  undo a remote operation.
 
 ## Reporting
 

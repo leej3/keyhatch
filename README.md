@@ -17,7 +17,10 @@ No hosted vault or subscription service is part of the proposed design.
 and private-pipe importer, encrypted persistence, Touch ID unlock, encrypted
 review history, and a user-triggered read-only HTTPS identity check.
 See [REAL-DATA.md](docs/REAL-DATA.md) and [known security limits](SECURITY.md).
-The synthetic policy dashboard remains separate; real agent IPC is disabled.
+The synthetic policy dashboard remains separate.
+A local pilot now provides mutually code-pinned IPC, explicit per-credential CLI
+approval, `run`, `check`, `lock`, and a host-scoped Git helper.
+See [LOCAL-PILOT.md](docs/LOCAL-PILOT.md).
 
 Implemented here:
 
@@ -34,11 +37,11 @@ Implemented here:
   It may request Touch ID; failure is not treated as success or replaced with a
   weaker path.
 
-**Not yet implemented:** production signed app packaging, authenticated IPC,
-direct Apple Passwords integration, protected native secret buffers, real agent
-delivery, constrained operation adapters, migration, or App Store distribution.
-The dashboard is a preview, not a security boundary.
-Its simulated unlock is explicitly not authentication.
+**Not yet implemented:** production provisioning/notarization, direct Apple
+Passwords integration in the app, protected native secret buffers, multi-account
+unlocked sessions, constrained operation adapters, or App Store distribution.
+The synthetic dashboard is not a security boundary; real CLI approval is
+separate and stored inside the encrypted credential record.
 
 Real credentials are loaded only through an explicit selective import; no bulk
 source access or automatic import occurs.
@@ -54,7 +57,8 @@ No third-party package dependencies.
 
 ```sh
 swift run --scratch-path .build/keyhatch KeyhatchChecks
-swift run --scratch-path .build/keyhatch Keyhatch
+python3 scripts/test-ipc.py
+bash scripts/install-local.sh
 ```
 
 For a Finder-launchable development preview, run
@@ -82,8 +86,10 @@ disappearance and termination.
 
 The checks use a dependency-free executable runner because Command Line Tools on
 the development machine do not include XCTest.
-They exercise policy and envelope version rejection, not a live hardware round
-trip.
+They exercise policy, encrypted storage and protocol validation.
+Separate-process IPC checks exercise real kernel peer authentication with
+synthetic data.
+Live credential and biometric tests remain explicit opt-in operations.
 
 ## Security promise
 

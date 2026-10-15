@@ -19,6 +19,7 @@ do {
     var record = try JSONDecoder().decode(CredentialRecord.self, from: input)
     try record.validate()
     record.history = []
+    record.brokerApproval = nil
     record.record("Imported one selected credential; no agent access granted")
     let envelope = try EnclaveVault.seal(JSONEncoder().encode(record))
     let files = try CredentialFiles()

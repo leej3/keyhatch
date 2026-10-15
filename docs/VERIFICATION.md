@@ -1,5 +1,46 @@
 # Verification record
 
+## Local replacement pilot implementation — 2026-10-15
+
+- Added same-user, kernel-audit-token/code-hash authentication in both
+  directions on an owner-only Unix socket.
+  The app pins the CLI and the CLI pins the app.
+  Both installed executables use hardened ad-hoc signatures.
+- Separate-process synthetic integration checks passed: mutually authenticated
+  connection, wrong-client denial, wrong-server denial, untrusted malformed
+  client rejection, duplicate-listener rejection, stale-socket recovery.
+- The 18 existing policy checks plus
+  storage/crypto check groups pass. Added checks for Git host/account/protocol/duplicate-field
+  rejection, bounded input, environment names and code-hash-bound approval
+  expiration.
+- Added private `run` injection, host-scoped Git helper, check/status/lock,
+  encrypted persistent CLI approval/revocation and pre-release audit writes.
+- Installed versioned local releases with a stable CLI symlink.
+  Previous releases and the existing Agent Vault remain intact.
+  No source credential was refetched.
+- Live installed-client checks verified mutual authentication, locked denial,
+  denial after unlock without approval, and locked state after app restart.
+- Following explicit user approval, the installed CLI delivered the selected
+  real credential privately to a child process and Git credential fill.
+  The values matched without being printed.
+  Three repeated checks passed without another approval; cross-host CLI and Git
+  requests were denied.
+- Native revocation denied both check and run; re-approval restored access
+  without changing source expiry.
+  The child exit status was preserved.
+  CLI lock denied further access, and app restart began locked.
+- The live CLI-driven HTTPS identity check timed out.
+  A separate credential-free request also timed out before establishing a
+  connection.
+  This does not prove an authentication failure or successful remote use from
+  the CLI.
+- After post-restart Touch ID, the encrypted approval persisted and CLI check
+  succeeded without re-approval.
+  The original source expiry was unchanged.
+- Selected-host cutover remains pending successful remote verification.
+  Existing credential helpers have not been changed.
+  Do not call the replacement complete.
+
 ## Selected real-data development path — 2026-10-15
 
 - MPL-2.0 license installed from Mozilla's canonical plain-text license; source

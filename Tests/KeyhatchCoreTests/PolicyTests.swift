@@ -169,5 +169,6 @@ enum Checks {
         for (name, check) in checks { check(); print("PASS: \(name)") }
         print("\(checks.count) checks passed; no credentials or biometric prompts used.")
         runCredentialChecks()
+        runClientChecks()
     }
 }

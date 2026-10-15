@@ -13,6 +13,8 @@ let package = Package(
         .target(name: "KeyhatchCore"),
         .executableTarget(name: "Keyhatch", dependencies: ["KeyhatchCore"]),
         .executableTarget(name: "KeyhatchImport", dependencies: ["KeyhatchCore"]),
+        .executableTarget(name: "KeyhatchCLI", dependencies: ["KeyhatchCore"]),
+        .executableTarget(name: "KeyhatchIPCFixture", dependencies: ["KeyhatchCore"], path: "Tests/IPCFixture"),
         .executableTarget(name: "KeyhatchChecks", dependencies: ["KeyhatchCore"],
                           path: "Tests/KeyhatchCoreTests")
     ]

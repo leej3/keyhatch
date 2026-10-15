@@ -7,10 +7,11 @@ private typealias ViewState<Value> = SwiftUI.State<Value>
 
 @main
 struct KeyhatchApp: App {
+    @StateObject private var model = RealCredentialModel()
     var body: some Scene {
         WindowGroup("Keyhatch · Development Preview") {
             TabView {
-                RealCredentialView().tabItem { Text("Real credential test") }
+                RealCredentialView(model: model).tabItem { Text("Real credential test") }
                 Dashboard().tabItem { Text("Synthetic policy demo") }
             }.frame(minWidth: 860, minHeight: 680)
         }

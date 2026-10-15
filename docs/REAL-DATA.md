@@ -1,9 +1,11 @@
 # Real-data development test
 
 This is a local experimental vertical slice, not a production agent broker.
-Agent IPC remains disabled.
-The existing user-level vault and credential helpers are not replaced or
-reconfigured.
+The original real-data test has been extended with a code-pinned local CLI
+pilot; see LOCAL-PILOT.md for current scope, approval, installation and
+rollback.
+Existing helpers remain unchanged until an explicit selected-host cutover passes
+its tests; the original vault is preserved.
 
 ## Implemented path
 

@@ -27,6 +27,8 @@ final class RealCredentialModel: ObservableObject {
     @Published var history: [CredentialHistory] = []
     @Published var unlocked = false
     @Published var busy = false
+    @Published var brokerStatus = "Broker not started"
+    @Published var cliApproved = false
     private var key: SymmetricKey?
     private var envelope: EnclaveEnvelope?
     private var storage: CredentialFiles?
@@ -36,6 +38,8 @@ final class RealCredentialModel: ObservableObject {
     private var monotonicStart: TimeInterval = 0
     private var generation = UUID()
     private var network: URLSession?
+    private var broker: BrokerServer?
+    private var clientHash: String { Bundle.main.object(forInfoDictionaryKey: "KeyhatchClientCDHash") as? String ?? "" }
 
     func refresh() {
         do {
@@ -44,13 +48,21 @@ final class RealCredentialModel: ObservableObject {
             files = try store.list()
             storage = store
             if !files.contains(selected) { selected = files.last ?? "" }
+            if broker == nil {
+                let service = try BrokerServer(clientHash: clientHash)
+                service.start { [weak self] request in
+                    self?.handle(request) ?? BrokerResponse(ok: false, status: "locked")
+                }
+                broker = service
+                brokerStatus = "Broker ready · pinned CLI only · shared by agents under your account"
+            }
         } catch { status = "Cannot access private credential storage; access denied." }
     }
 
     func lock() {
         generation = UUID()
         network?.invalidateAndCancel(); network = nil
-        key = nil; envelope = nil; start = nil; unlocked = false; busy = false
+        key = nil; envelope = nil; start = nil; unlocked = false; busy = false; cliApproved = false
         host = ""; account = ""; expires = nil; history = []
         if heldLock >= 0 { close(heldLock); heldLock = -1 }
         status = "Locked. Future access denied; existing remote sessions are not revoked."
@@ -90,7 +102,9 @@ final class RealCredentialModel: ObservableObject {
                     expires = Date(timeIntervalSince1970: record.expiresAt)
                     start = Date(); monotonicStart = ProcessInfo.processInfo.systemUptime
                     unlocked = true
-                    try recordEvent("Unlocked for at most five hours; no agent access granted")
+                    cliApproved = record.brokerApproval?.permits(clientHash: clientHash,
+                        credentialExpiry: record.expiresAt) ?? false
+                    try recordEvent("Unlocked for at most five hours; existing CLI approval re-evaluated")
                     status = "Loaded \(host) / \(account). No password value is displayed."
                     busy = false
                 } catch {
@@ -116,12 +130,71 @@ final class RealCredentialModel: ObservableObject {
     private func recordEvent(_ text: String) throws {
         var record = try readRecord()
         record.record(text)
+        try persist(record)
+    }
+
+    private func persist(_ record: CredentialRecord) throws {
+        guard active else { throw CredentialError.locked }
         guard let key, let envelope, let storage else { throw CredentialError.locked }
         let updated = try EnclaveVault.replacingPayload(envelope,
             plaintext: JSONEncoder().encode(record), using: key)
         try storage.update(updated, name: activeName)
         self.envelope = updated
         history = record.history
+    }
+
+    func approveCLI() {
+        do {
+            guard broker != nil, LocalIPC.validHash(clientHash) else { throw IPCError.unavailable }
+            var record = try readRecord()
+            record.brokerApproval = BrokerApproval(clientHash: clientHash, expiresAt: record.expiresAt)
+            record.record("User approved pinned CLI for repeated retrieval until source expiry; recipient may retain copies")
+            try persist(record)
+            cliApproved = true
+            status = "CLI approved for this credential until its original cache expiry."
+        } catch { lock(); status = "Approval could not be persisted; locked." }
+    }
+
+    func revokeCLI() {
+        do {
+            var record = try readRecord()
+            record.brokerApproval = nil
+            record.record("User revoked CLI retrieval; previously disclosed copies are not revoked")
+            try persist(record)
+            cliApproved = false
+            status = "CLI revoked. Further retrieval is denied."
+        } catch { lock(); status = "Revocation could not be persisted; locked. Do not assume persistent revocation succeeded." }
+    }
+
+    private func handle(_ request: BrokerRequest) -> BrokerResponse {
+        guard request.version == 1 else { return BrokerResponse(ok: false, status: "unsupported request") }
+        if request.operation == "status" {
+            tick()
+            return BrokerResponse(ok: true, status: active ? (cliApproved ? "unlocked; CLI approved" : "unlocked; approval required") : "locked")
+        }
+        if request.operation == "lock" { lock(); return BrokerResponse(ok: true, status: "locked") }
+        guard ["get", "check"].contains(request.operation) else { return BrokerResponse(ok: false, status: "unsupported request") }
+        guard active else { tick(); return BrokerResponse(ok: false, status: "locked or expired") }
+        do {
+            guard request.host == host, request.account == account else {
+                try recordEvent("Denied CLI request for a different credential")
+                return BrokerResponse(ok: false, status: "credential not selected")
+            }
+            let record = try readRecord()
+            guard record.brokerApproval?.permits(clientHash: clientHash, credentialExpiry: record.expiresAt) == true else {
+                cliApproved = false
+                try recordEvent("Denied CLI request: approval required or revoked")
+                return BrokerResponse(ok: false, status: "approval required or revoked")
+            }
+            try recordEvent(request.operation == "get" ? "Authorized pinned CLI credential release (recipient may retain a copy)" : "Pinned CLI availability check; no secret released")
+            // The encrypted audit write may take time: recheck immediately before sending.
+            guard active else { lock(); return BrokerResponse(ok: false, status: "expired during request") }
+            return BrokerResponse(ok: true, status: "available", secret: request.operation == "get" ? record.secret : nil,
+                                  expiresAt: record.expiresAt)
+        } catch {
+            lock()
+            return BrokerResponse(ok: false, status: "validation or audit failure; locked")
+        }
     }
 
     /// Explicit user action: exact-host HTTPS GET only, no redirects or shared cookies.
@@ -187,14 +260,16 @@ final class RealCredentialModel: ObservableObject {
 }
 
 struct RealCredentialView: View {
-    @StateObject private var model = RealCredentialModel()
+    @ObservedObject var model: RealCredentialModel
     @LocalViewState private var confirmRequest = false
+    @LocalViewState private var confirmCLI = false
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Keyhatch · Real credential test").font(.title.bold())
-            Text("Experimental local build · No agent IPC · No bulk Passwords access")
+            Text("Local pilot · Pinned CLI identity · No bulk Passwords access")
                 .foregroundStyle(.orange)
+            Text(model.brokerStatus).font(.caption)
             Text("Import one selected credential through the private-pipe importer. Encrypted files remain on this Mac; the source password store is unchanged.")
             HStack {
                 Picker("Encrypted file", selection: $model.selected) {
@@ -216,6 +291,11 @@ struct RealCredentialView: View {
             if model.unlocked {
                 Text("\(model.host) / \(model.account)").font(.headline)
                 if let expires = model.expires { Text("Source cache expiry: \(expires.formatted())") }
+                HStack {
+                    Button("Approve local CLI…") { confirmCLI = true }.disabled(model.cliApproved || model.busy)
+                    Button("Revoke CLI") { model.revokeCLI() }.disabled(!model.cliApproved)
+                    Text(model.cliApproved ? "Repeated retrieval approved" : "CLI retrieval denied")
+                }
                 Button("Check read-only Forgejo identity…") { confirmRequest = true }.disabled(model.busy)
                 Text("Sends this credential only to https://\(model.host)/api/v1/user. No redirects, no shared cookie store, no response body displayed.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -238,6 +318,11 @@ struct RealCredentialView: View {
         .confirmationDialog("Send the selected credential to \(model.host) for a read-only identity check?",
                             isPresented: $confirmRequest) {
             Button("Send to selected host") { model.checkForgeIdentity() }
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog("Allow the installed Keyhatch CLI to retrieve \(model.host) / \(model.account) while unlocked until source expiry? All agents under your account can use this CLI and retain credentials after lock or revocation.",
+                            isPresented: $confirmCLI) {
+            Button("Approve this credential for local CLI") { model.approveCLI() }
             Button("Cancel", role: .cancel) {}
         }
     }
