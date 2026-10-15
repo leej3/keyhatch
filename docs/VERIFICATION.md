@@ -1,5 +1,27 @@
 # Verification record
 
+## Keyhatch test drive — 2026-10-15
+
+- Renamed product and repository to Keyhatch; new repository path is
+  `/Users/johnlee/code/keyhatch`.
+- `swift run --scratch-path .build/keyhatch KeyhatchChecks`: 18 checks pass,
+  including repeated retrieval on one approval across session renewal, grant
+  revocation, and expiry of grants without a use-count limit.
+- `bash scripts/build-preview.sh`: renamed app builds and launches.
+  Native UI displays the selected tagline and three-day reusable approval
+  controls.
+- During the user test drive, the native UI reported
+  **“Hardware round trip succeeded on this Mac.”** The round trip uses a random
+  synthetic payload and the hardware-only EnclaveVault path.
+  No software fallback exists in that path.
+  The agent observed the success state; it did not inspect biometric input.
+- That result does not establish persistence across relaunch, cancellation
+  behavior, enrollment-change recovery, production signing, or App Store
+  support.
+- No real Passwords ingestion or existing Agent Vault migration was performed.
+
+## Earlier foundation verification — 2026-10-14
+
 Development machine: Apple Silicon macOS; Apple Swift 6.4 Command Line Tools.
 Verified 2026-10-14.
 No personal credentials were accessed.

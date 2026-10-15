@@ -1,13 +1,14 @@
-# Handrail
+# Keyhatch
 
-Your passwords.
-A smaller reach for your agents.
+Prioritizing practicality over perfection.
 
-Handrail is a working name for an open-source macOS credential broker.
+Keyhatch is a proposed open-source macOS credential broker.
 Apple Passwords remains the source of truth.
-Handrail is intended to mediate which credentials an agent may use, for how
-long, and for which operations, with a visible activity feed and a review
-dashboard.
+Approve a few credentials once and let your agents retrieve them repeatedly
+within a bounded window, rather than exposing your entire password store or
+approving every use.
+A visible activity feed and review dashboard show which credentials have been
+loaded and requested.
 No hosted vault or subscription service is part of the proposed design.
 
 ## Status: development foundation, not a production vault
@@ -45,18 +46,19 @@ synthetic preview).
 No third-party package dependencies.
 
 ```sh
-swift run HandrailChecks
-swift run Handrail
+swift run --scratch-path .build/keyhatch KeyhatchChecks
+swift run --scratch-path .build/keyhatch Keyhatch
 ```
 
 For a Finder-launchable development preview, run
-`bash scripts/build-preview.sh` and open `.build/Handrail Preview.app`.
+`bash scripts/build-preview.sh` and open `.build/Keyhatch Preview.app`.
 Its ad-hoc signature is only for local development; it is not provisioned,
 sandboxed, notarized or Store-ready.
 
-Start a demo session, load the example, simulate a denied request, approve two
-reads, and simulate three more requests.
-The final request is denied.
+Start a demo session, load the example, simulate a denied request, and choose
+“Approve for 3 days.”
+Repeated requests now succeed without another approval.
+The five-hour session still gates access, independently of the three-day grant.
 Revoke a grant or lock the session to see denial in the review history.
 Example account and domain are not real user data; nothing survives quitting
 this preview.
@@ -77,8 +79,12 @@ Hardware wrapping protects cached data at rest.
 It does not put API requests or plaintext credentials inside the Secure Enclave.
 Giving a credential to an agent permits that agent to copy it; expiry cannot
 revoke an already disclosed password or a remote login session.
-Stronger damage control requires keeping credentials in the broker and offering
-tightly constrained operations instead.
+The practical goal is to limit which credentials are disclosed, not require
+bespoke integrations with every service.
+The exposure set includes credentials previously handed out and retained by a
+recipient, not only currently unexpired cache entries.
+Per-service operation mediation is a possible future feature, not an MVP
+requirement or the default workflow.
 
 An unrestricted process running as the user can bypass a voluntary broker if it
 can reach the credential source directly.

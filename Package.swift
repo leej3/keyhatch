@@ -2,16 +2,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "Handrail",
+    name: "Keyhatch",
     platforms: [.macOS(.v14)],
     products: [
-        .library(name: "HandrailCore", targets: ["HandrailCore"]),
-        .executable(name: "Handrail", targets: ["Handrail"])
+        .library(name: "KeyhatchCore", targets: ["KeyhatchCore"]),
+        .executable(name: "Keyhatch", targets: ["Keyhatch"])
     ],
     targets: [
-        .target(name: "HandrailCore"),
-        .executableTarget(name: "Handrail", dependencies: ["HandrailCore"]),
-        .executableTarget(name: "HandrailChecks", dependencies: ["HandrailCore"],
-                          path: "Tests/HandrailCoreTests")
+        .target(name: "KeyhatchCore"),
+        .executableTarget(name: "Keyhatch", dependencies: ["KeyhatchCore"]),
+        .executableTarget(name: "KeyhatchChecks", dependencies: ["KeyhatchCore"],
+                          path: "Tests/KeyhatchCoreTests")
     ]
 )

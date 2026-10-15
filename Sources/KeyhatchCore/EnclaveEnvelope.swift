@@ -21,6 +21,7 @@ public struct EnclaveEnvelope: Codable {
 /// Hardware-only wrapping: there is intentionally no software fallback.
 /// AES and plaintext necessarily operate in application memory, not the enclave.
 public enum EnclaveVault {
+    // Preserve the prototype's cryptographic domain across the product rename.
     private static let context = Data("Handrail/envelope/v1".utf8)
 
     private static func wrappingKey(_ shared: SharedSecret, salt: Data) -> SymmetricKey {
@@ -61,7 +62,7 @@ public enum EnclaveVault {
             throw EnvelopeError.malformed
         }
         let authentication = LAContext()
-        authentication.localizedReason = "Unlock Handrail’s credential cache"
+        authentication.localizedReason = "Unlock Keyhatch’s credential cache"
         authentication.localizedFallbackTitle = ""
         authentication.touchIDAuthenticationAllowableReuseDuration = 0
         defer { authentication.invalidate() }

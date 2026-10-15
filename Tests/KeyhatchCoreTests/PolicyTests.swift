@@ -1,5 +1,5 @@
 import Foundation
-import HandrailCore
+import KeyhatchCore
 
 // Dependency-free runner for machines with Command Line Tools but no XCTest.
 // Preconditions remain enabled in release builds (never use -Ounchecked).
@@ -117,6 +117,28 @@ final class PolicyTests {
         } catch EnvelopeError.unsupportedVersion { }
         catch { preconditionFailure("Unexpected error: \(error)") }
     }
+
+    func testReusableApprovalSurvivesSessionRenewal() {
+        var p = AccessPolicy()
+        p.beginAuthenticatedSession(now: now, monotonic: 100)
+        p.approve(Grant(request: request, expiresAt: now.addingTimeInterval(AccessPolicy.cacheDuration)))
+        for _ in 0..<100 { XCTAssertEqual(evaluate(&p), .allowed) }
+        p.lock()
+        XCTAssertEqual(evaluate(&p), .locked)
+        p.beginAuthenticatedSession(now: now.addingTimeInterval(10), monotonic: 110)
+        XCTAssertEqual(evaluate(&p, offset: 10), .allowed)
+        XCTAssertEqual(p.grants.count, 1)
+        p.revoke(p.grants[0].id)
+        XCTAssertEqual(evaluate(&p, offset: 10), .revoked)
+    }
+
+    func testReusableApprovalStillExpires() {
+        var p = AccessPolicy()
+        p.beginAuthenticatedSession(now: now, monotonic: 100)
+        p.approve(Grant(request: request, expiresAt: now.addingTimeInterval(30)))
+        XCTAssertEqual(evaluate(&p, offset: 29), .allowed)
+        XCTAssertEqual(evaluate(&p, offset: 30), .expiredGrant)
+    }
 }
 
 @main
@@ -139,7 +161,9 @@ enum Checks {
             ("monotonic deadline", t.testMonotonicDeadlineDespiteWallClock),
             ("renewal preserves retention", t.testRenewDoesNotRenewCredential),
             ("new grant after revocation", t.testNewGrantCanFollowRevocation),
-            ("unsupported envelope", t.testUnsupportedEnvelopeRejectedWithoutAuthentication)
+            ("unsupported envelope", t.testUnsupportedEnvelopeRejectedWithoutAuthentication),
+            ("reusable approval across sessions", t.testReusableApprovalSurvivesSessionRenewal),
+            ("reusable approval expires", t.testReusableApprovalStillExpires)
         ]
         for (name, check) in checks { check(); print("PASS: \(name)") }
         print("\(checks.count) checks passed; no credentials or biometric prompts used.")

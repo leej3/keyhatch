@@ -20,11 +20,12 @@ public struct Grant: Identifiable {
     public let id: UUID
     public let request: AccessRequest
     public let expiresAt: Date
-    public let maximumUses: Int
+    /// nil permits repeated retrieval until expiry or revocation.
+    public let maximumUses: Int?
     public private(set) var uses = 0
     public private(set) var revoked = false
 
-    public init(id: UUID = UUID(), request: AccessRequest, expiresAt: Date, maximumUses: Int) {
+    public init(id: UUID = UUID(), request: AccessRequest, expiresAt: Date, maximumUses: Int? = nil) {
         self.id = id
         self.request = request
         self.expiresAt = expiresAt
@@ -90,7 +91,7 @@ public struct AccessPolicy {
             decision = .expiredCredential
         } else if let i = grants.firstIndex(where: {
             $0.request == request && !$0.revoked && now < $0.expiresAt &&
-                $0.uses < $0.maximumUses
+                $0.hasRemainingUses
         }) {
             grants[i].consume()
             decision = .allowed
@@ -105,4 +106,8 @@ public struct AccessPolicy {
                                  credential: request.credential, decision: decision))
         return decision
     }
+}
+
+private extension Grant {
+    var hasRemainingUses: Bool { maximumUses.map { uses < $0 } ?? true }
 }

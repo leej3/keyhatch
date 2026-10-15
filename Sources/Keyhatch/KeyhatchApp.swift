@@ -1,13 +1,13 @@
 import SwiftUI
-import HandrailCore
+import KeyhatchCore
 
 // Select the stable property wrapper instead of the SDK's same-named macro.
 private typealias ViewState<Value> = SwiftUI.State<Value>
 
 @main
-struct HandrailApp: App {
+struct KeyhatchApp: App {
     var body: some Scene {
-        WindowGroup("Handrail · Development Preview") {
+        WindowGroup("Keyhatch · Development Preview") {
             Dashboard().frame(minWidth: 860, minHeight: 620)
         }
     }
@@ -33,8 +33,8 @@ struct Dashboard: View {
             HStack {
                 Image(systemName: "hand.raised.fingers.spread.fill").font(.largeTitle)
                 VStack(alignment: .leading) {
-                    Text("Handrail").font(.largeTitle.bold())
-                    Text("Your passwords. A smaller reach for your agents.").foregroundStyle(.secondary)
+                    Text("Keyhatch").font(.largeTitle.bold())
+                    Text("Prioritizing practicality over perfection.").foregroundStyle(.secondary)
                 }
                 Spacer()
                 Text("SYNTHETIC PREVIEW").font(.caption.bold()).padding(8)
@@ -69,11 +69,11 @@ struct Dashboard: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Approve 2 demo reads") {
+                    Button("Approve for 3 days") {
                         policy.approve(Grant(request: request(credential),
-                            expiresAt: Date().addingTimeInterval(3600), maximumUses: 2))
-                        notice = "Approved example-agent for two read operations at \(credential.host), for one hour."
-                    }
+                            expiresAt: credential.fetchedAt.addingTimeInterval(AccessPolicy.cacheDuration)))
+                        notice = "Approved example-agent for repeated retrieval of \(credential.host), while unlocked, until cache expiry or revocation."
+                    }.disabled(policy.grants.contains { $0.request == request(credential) && !$0.revoked && $0.expiresAt > Date() })
                     Button("Simulate request") {
                         let result = policy.evaluate(request(credential), fetchedAt: credential.fetchedAt,
                             now: Date(), monotonic: ProcessInfo.processInfo.systemUptime)
@@ -85,7 +85,7 @@ struct Dashboard: View {
                 Text("Grants").font(.headline)
                 ForEach(policy.grants) { grant in
                     HStack {
-                        Text("\(grant.request.client) · \(grant.uses)/\(grant.maximumUses) uses · \(grant.revoked ? "revoked" : "expires " + grant.expiresAt.formatted())")
+                        Text("\(grant.request.client) · \(grant.uses) retrievals · \(grant.revoked ? "revoked" : "expires " + grant.expiresAt.formatted())")
                         Spacer()
                         Button("Revoke") { policy.revoke(grant.id) }.disabled(grant.revoked)
                     }.font(.caption)

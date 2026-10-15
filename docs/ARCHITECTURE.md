@@ -9,13 +9,21 @@ Apple Passwords → user-mediated ingestion → signed credential broker
                                                │
 Trusted dashboard ← sanitized events ← policy engine ← authenticated IPC
                                                │
-                          constrained service adapters ← agent requests
+                          selective credential handoff ← agent requests
                                                │
-                              exact authorized remote service
+                              approved recipient process
 ```
 
 The current preview implements policy decisions and hardware-envelope source,
 not the arrows to Passwords, IPC or remote services.
+
+The MVP is selective reusable disclosure, not mandatory service mediation.
+Once approved, a credential may be retrieved repeatedly while the session and
+grant are valid.
+The recipient can retain a copy; the window bounds retrieval but not the
+lifetime of that copy.
+Service-specific constrained adapters are optional future work rather than a
+prerequisite for practical everyday use.
 A sandboxed app bundle and authenticated broker remain release gates.
 Same-user agents with unrestricted access to Passwords or the broker's
 executable/state are outside the desired containment boundary until deployment

@@ -2,6 +2,16 @@
 
 ## Product decisions
 
+Product direction clarified 2026-10-15: Keyhatch, “Prioritizing practicality
+over perfection.”
+Selective reusable credential disclosure is the primary workflow, not a
+fallback.
+No enterprise-scale service integration is required.
+Grant approval can span multiple five-hour unlock sessions, but never extends
+the credential's three-day cache lifetime.
+Recipients may retain disclosed secrets beyond these windows; expiry limits
+future retrieval, not remote use.
+
 - Apple Passwords stays the durable credential source; no competing synced
   vault.
 - Five-hour fixed unlock window; explicit renewal requires fresh authentication.
@@ -76,18 +86,26 @@ make a persistent in-app activity item even when notifications are disabled.
 Mask sensitive account details in lock-screen notifications.
 Coalesce same-entry loads; do not repeatedly prompt after cancellation.
 
-### 5. Agent adapters and damage control
+### 5. Practical credential delivery
 
-First ship one narrowly defined operation adapter with fixed HTTPS destination,
-validated method/path/body, no arbitrary headers, no redirect credential
-forwarding, no arbitrary proxy/URL selection, bounded response and rate limits.
-Use fake servers to test exfiltration attempts and confused-deputy behavior.
+Ship selective credential handoff through private pipes or existing credential
+helper interfaces.
+User approval selects an explicit credential/account and recipient; repeated
+retrieval is allowed until grant expiry, cache expiry, revocation or session
+lock.
+Show “recipient can retain this credential” at approval, without asking again on
+each permitted retrieval.
+Never dump secrets to chat, logs or general-purpose terminal output.
 
-Compatibility credential delivery is a separate explicit opt-in, visibly marked
-“recipient can retain this credential.”
-Prefer service-specific least-privilege tokens and short-lived credentials.
-Do not pretend a request-count budget limits what a recipient can do after
-receiving a reusable password.
+Keep an inventory of credentials ever disclosed, alongside currently available
+ones, so incident review can identify candidates for remote rotation.
+Do not claim that forgetting or expiring a credential erases recipient-held
+copies.
+
+Optional future adapters may perform fixed, narrowly permitted service
+operations without disclosing credentials.
+Those require per-service validation and are explicitly outside the MVP
+dependency chain.
 
 ### 6. Review dashboard and migration
 
