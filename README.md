@@ -1,5 +1,7 @@
 # Keyhatch
 
+<img src="docs/images/keyhatch.svg" alt="Keyhatch monogram" width="128">
+
 Prioritizing practicality over perfection.
 
 Keyhatch is a proposed open-source macOS credential broker.
