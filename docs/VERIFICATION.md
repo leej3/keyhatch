@@ -1,5 +1,29 @@
 # Verification record
 
+## Full Xcode archive validation — 2026-10-15
+
+- Xcode 27.0 (27A266a) completed first-launch setup and recognized the Store
+  scheme and all three native targets.
+- Release build and archive succeeded with `CODE_SIGNING_ALLOWED=NO` for both
+  arm64 and x86_64.
+  The archive is for structural validation only; it retains placeholder
+  identifiers and cannot be distributed.
+- Added the Utilities category to both Store bundles, clearing Xcode's missing
+  category warnings.
+  The remaining App Intents metadata notices report that neither executable uses
+  AppIntents.framework.
+- Verified the archive application path, nested client placement, executable
+  names, universal architectures, privacy resources and license.
+  The external importer is absent.
+  The release validator correctly rejects this unconfigured archive because no
+  developer team is set.
+- No local code-signing identities or provisioning profiles were available.
+  Signing, provisioning, sandboxed runtime and Store submission remain pending.
+- Core checks rebuilt and passed with the Xcode toolchain: all 18 policy checks
+  and the storage, expiry, client-input, deployment and bundle-trust groups.
+- No packaged app was launched and no credential store was accessed by these
+  build and archive checks.
+
 ## Distribution alignment — 2026-10-15
 
 - Debug products and a self-contained Release development app compiled.
@@ -19,7 +43,7 @@
 - Generated Xcode project, scheme and entitlement property lists passed
   structural checks; shell/Python syntax, Snapper and Git whitespace checks
   passed.
-- Full Xcode is unavailable on this host.
+- Full Xcode was unavailable during this earlier pass.
   No Store archive, Developer ID signing, provisioning, notarization, Store
   download/re-sign behavior or sandboxed runtime was verified.
 - No GUI was launched, biometric prompt triggered, credential store accessed,

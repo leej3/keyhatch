@@ -93,7 +93,9 @@ See Apple's
 Regenerate after adding Swift files.
 It contains native app, static core, and nested client app targets, with a
 shared `Keyhatch Store` scheme.
-Full Xcode is required; the current Command Line Tools host cannot archive it.
+Full Xcode is required.
+Xcode 27.0 has built and archived both universal targets with signing disabled;
+production signing and sandboxed runtime remain unverified.
 
 Register a broker bundle ID, its `.client` helper ID, and one authorized App
 Group in the Apple Developer account.
@@ -132,8 +134,10 @@ Actual downloaded Store signature behavior is not yet verified.
 
 ## Remaining release gates
 
-- Build and archive in full Xcode with actual identities, groups and profiles.
-  The generated project has passed structural checks, not an Xcode archive.
+- Sign and archive with actual identities, groups and profiles.
+  The generated project has passed an unsigned Xcode 27.0 archive and bundle
+  layout checks.
+  This does not establish provisioning or sandbox behavior.
 - Exercise the signed Store app and Terminal client together: group container
   creation, path length, socket access, peer authentication, private storage
   isolation, Git output, and denial of `run`.
