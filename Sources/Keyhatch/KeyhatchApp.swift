@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 import SwiftUI
 import KeyhatchCore
 
@@ -8,7 +9,10 @@ private typealias ViewState<Value> = SwiftUI.State<Value>
 struct KeyhatchApp: App {
     var body: some Scene {
         WindowGroup("Keyhatch · Development Preview") {
-            Dashboard().frame(minWidth: 860, minHeight: 620)
+            TabView {
+                RealCredentialView().tabItem { Text("Real credential test") }
+                Dashboard().tabItem { Text("Synthetic policy demo") }
+            }.frame(minWidth: 860, minHeight: 680)
         }
     }
 }

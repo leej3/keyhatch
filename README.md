@@ -13,6 +13,12 @@ No hosted vault or subscription service is part of the proposed design.
 
 ## Status: development foundation, not a production vault
 
+**Real-data development path:** the app now has a separate real-credential tab
+and private-pipe importer, encrypted persistence, Touch ID unlock, encrypted
+review history, and a user-triggered read-only HTTPS identity check.
+See [REAL-DATA.md](docs/REAL-DATA.md) and [known security limits](SECURITY.md).
+The synthetic policy dashboard remains separate; real agent IPC is disabled.
+
 Implemented here:
 
 - A native SwiftUI review preview with **synthetic data only**, visible load
@@ -29,15 +35,16 @@ Implemented here:
   weaker path.
 
 **Not yet implemented:** production signed app packaging, authenticated IPC,
-Apple Passwords ingestion, durable encrypted storage and audit history,
-protected native secret buffers, real agent delivery, constrained operation
-adapters, migration, or App Store distribution.
+direct Apple Passwords integration, protected native secret buffers, real agent
+delivery, constrained operation adapters, migration, or App Store distribution.
 The dashboard is a preview, not a security boundary.
 Its simulated unlock is explicitly not authentication.
 
-No real credentials are loaded, no existing vault is changed, and no services
-are installed.
-Do not put personal credentials into this development preview.
+Real credentials are loaded only through an explicit selective import; no bulk
+source access or automatic import occurs.
+No existing vault is changed and no background services are installed.
+Use only a deliberately selected credential whose exposure you accept under the
+documented experimental-build limitations.
 
 ## Run
 
@@ -67,6 +74,11 @@ The hardware button is separate from the demo.
 Run it only when ready for a native authentication prompt.
 A compiled binary is **not** evidence that provisioning, hardware use, or
 cancellation handling have passed on a Mac.
+
+In the real-data tab, unlocking the selected encrypted file is independent of
+the synthetic demo and reads actual imported data.
+Lock before closing the app; the app also clears session references on view
+disappearance and termination.
 
 The checks use a dependency-free executable runner because Command Line Tools on
 the development machine do not include XCTest.
@@ -101,6 +113,14 @@ and [architecture and release gates](docs/ARCHITECTURE.md).
 Intended model: public source, self-build option, and an inexpensive one-time
 Mac App Store purchase for convenient installation and updates.
 Store acceptance is not established.
-MIT is the proposed license; the owner must confirm the license and copyright
-attribution before public release.
-No open-source license has been granted by this initial private scaffold.
+Keyhatch source is licensed under [MPL-2.0](LICENSE).
+Contributions use the same license, with no copyright assignment or broad
+relicensing CLA.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+Source availability and notice obligations must be met for paid binaries too.
+App Store approval is not established.
+
+Unless a file states otherwise, original source, tests, scripts, configuration
+and project documentation in this repository are covered by MPL-2.0.
+License texts and any separately identified third-party material retain their
+own terms.

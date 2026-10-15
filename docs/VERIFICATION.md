@@ -1,5 +1,29 @@
 # Verification record
 
+## Selected real-data development path — 2026-10-15
+
+- MPL-2.0 license installed from Mozilla's canonical plain-text license; source
+  identifiers and same-license contribution instructions added.
+  No copyright assignment or proprietary-relicensing CLA introduced.
+- All 18 policy checks pass, plus three real-data check groups: strict identity/
+  expiry validation; AES round trip, wrong key and tamper rejection; owner-only
+  atomic file storage, file locking and unsafe-path/permission rejection.
+- Native app and importer compile.
+  The real-data tab launches.
+  Core dumps are disabled before sensitive operations; storage permissions
+  checked as 0700 for the directory and 0600 for the encrypted file.
+- The user-selected credential was imported through a private pipe from its
+  existing cache into a new hardware-wrapped file outside Git.
+  No raw credential was printed, no bulk import performed, and source expiry was
+  preserved.
+- A Keyhatch unlock prompt was requested.
+  The subsequently observed app state was Locked; no successful real-data unlock
+  or remote authentication result has been observed yet.
+  Do not treat import success as end-to-end verification.
+- Known security issues and release blockers are in SECURITY.md.
+  Agent IPC is not enabled; this is not a completed production broker or
+  independent audit.
+
 ## Keyhatch test drive — 2026-10-15
 
 - Renamed product and repository to Keyhatch; new repository path is

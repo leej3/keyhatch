@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 import CryptoKit
 import Foundation
 import LocalAuthentication
@@ -56,6 +57,11 @@ public enum EnclaveVault {
     /// Only the broker's user-initiated unlock flow should call this method.
     /// No retry on cancellation. Biometric enrollment changes invalidate access.
     public static func open(_ envelope: EnclaveEnvelope) throws -> Data {
+        try decrypt(envelope, using: unlockKey(envelope))
+    }
+
+    /// Session key stays in native process memory until lock/expiry. Not enclave RAM.
+    public static func unlockKey(_ envelope: EnclaveEnvelope) throws -> SymmetricKey {
         guard envelope.version == 1 else { throw EnvelopeError.unsupportedVersion }
         guard SecureEnclave.isAvailable else { throw EnvelopeError.secureEnclaveUnavailable }
         guard envelope.salt.count == 32, envelope.ephemeralPublicKey.count == 65 else {
@@ -74,7 +80,24 @@ public enum EnclaveVault {
                                      using: wrappingKey(shared, salt: envelope.salt),
                                      authenticating: context)
         guard bytes.count == 32 else { throw EnvelopeError.malformed }
+        return SymmetricKey(data: bytes)
+    }
+
+    public static func decrypt(_ envelope: EnclaveEnvelope, using key: SymmetricKey) throws -> Data {
+        guard envelope.version == 1 else { throw EnvelopeError.unsupportedVersion }
         return try AES.GCM.open(AES.GCM.SealedBox(combined: envelope.ciphertext),
-                                using: SymmetricKey(data: bytes), authenticating: context)
+                                using: key, authenticating: context)
+    }
+
+    public static func replacingPayload(_ envelope: EnclaveEnvelope, plaintext: Data,
+                                        using key: SymmetricKey) throws -> EnclaveEnvelope {
+        guard envelope.version == 1 else { throw EnvelopeError.unsupportedVersion }
+        guard let ciphertext = try AES.GCM.seal(plaintext, using: key,
+                                               authenticating: context).combined else {
+            throw EnvelopeError.malformed
+        }
+        return EnclaveEnvelope(version: envelope.version, keyReference: envelope.keyReference,
+            ephemeralPublicKey: envelope.ephemeralPublicKey, salt: envelope.salt,
+            wrappedKey: envelope.wrappedKey, ciphertext: ciphertext)
     }
 }

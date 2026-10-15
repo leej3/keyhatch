@@ -14,8 +14,11 @@ Trusted dashboard ← sanitized events ← policy engine ← authenticated IPC
                               approved recipient process
 ```
 
-The current preview implements policy decisions and hardware-envelope source,
-not the arrows to Passwords, IPC or remote services.
+The synthetic policy preview remains separate from the real-data test path.
+The real-data path now includes selective private-pipe ingestion, encrypted
+persistence/history, native unlock and an exact-host read-only HTTPS identity
+check.
+Direct Passwords integration and agent IPC are still absent.
 
 The MVP is selective reusable disclosure, not mandatory service mediation.
 Once approved, a credential may be retrieved repeatedly while the session and
@@ -49,7 +52,9 @@ isolates those capabilities.
 The prototype creates one envelope per seal.
 Production will use a versioned vault key hierarchy and atomic storage; the
 format is not yet stable.
-Hardware round-trip testing is opt-in and uses ephemeral synthetic data only.
+The standalone hardware round-trip button uses ephemeral synthetic data.
+The separate real-data tab opens deliberately imported encrypted credential
+files.
 
 Enclave key use is biometric-protected; the five-hour session itself is broker
 policy, not an enclave-enforced timer.

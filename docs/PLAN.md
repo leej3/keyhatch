@@ -32,6 +32,14 @@ future retrieval, not remote use.
 
 ## Milestones and acceptance gates
 
+2026-10-15 update: the owner requested a selected real-credential development
+test after the synthetic hardware round trip succeeded.
+A private-pipe import, encrypted file store, native unlock, encrypted history
+and read-only identity test now exist (see REAL-DATA.md).
+This is a limited experimental path under the documented same-user threat
+boundary, not completion of the production gates below.
+Existing agent helpers and the original vault remain unchanged.
+
 ### 1. Foundation (this repository)
 
 Policy tests, hardware envelope source, synthetic SwiftUI dashboard,
@@ -49,9 +57,10 @@ Test approval, cancellation, biometric enrollment change, unavailable hardware,
 corrupted envelopes and a missing key.
 No silent key regeneration.
 
-Use only synthetic credentials until these checks pass.
-Keep a separate test container; do not migrate or reset the existing Agent
-Vault.
+Use synthetic credentials for automated and adversarial tests.
+Production migration remains gated on these checks.
+The explicitly authorized one-entry development test uses separate state and
+does not reset the existing Agent Vault.
 
 ### 3. Durable broker and trusted user controls
 
@@ -124,10 +133,13 @@ configuration without explaining the change.
 
 ### 7. Release
 
-Confirm name, license, copyright attribution, developer
-account/team, one-time price and store strategy. Independent security review, reproducible build instructions, signed/notarized
-distribution as appropriate, privacy policy, recovery guide, supported
-OS/hardware matrix and App Review evidence.
+The selected license is MPL-2.0 with same-license contributions, retained
+contributor copyright, and no
+copyright-assignment/relicensing CLA. Confirm copyright attribution, developer account/team,
+one-time price and store strategy.
+Independent security review, reproducible build instructions,
+signed/notarized distribution as appropriate, privacy policy, recovery guide, supported OS/hardware
+matrix and App Review evidence.
 Publish only after the owner chooses the destination and approves public
 release.
 

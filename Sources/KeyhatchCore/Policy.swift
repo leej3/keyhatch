@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 import Foundation
 
 /// Caller identity MUST come from verified IPC credentials, never request JSON.

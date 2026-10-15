@@ -1,4 +1,5 @@
 // swift-tools-version: 5.9
+// SPDX-License-Identifier: MPL-2.0
 import PackageDescription
 
 let package = Package(
@@ -11,6 +12,7 @@ let package = Package(
     targets: [
         .target(name: "KeyhatchCore"),
         .executableTarget(name: "Keyhatch", dependencies: ["KeyhatchCore"]),
+        .executableTarget(name: "KeyhatchImport", dependencies: ["KeyhatchCore"]),
         .executableTarget(name: "KeyhatchChecks", dependencies: ["KeyhatchCore"],
                           path: "Tests/KeyhatchCoreTests")
     ]
