@@ -64,6 +64,22 @@ with tempfile.TemporaryDirectory(prefix="kh-ipc-", dir="/tmp") as directory:
                 pass
         assert call("client", hashes["server"]).returncode == 0
         print("PASS: untrusted malformed client denied; broker remains usable")
+        # The genuine pinned client bypasses its normal frame encoder to exercise
+        # server parsing after authentication, including partial and idle peers.
+        for scenario in ("malformed-json", "zero-length", "oversized", "maximum-length",
+                         "truncated-header", "truncated-body", "stalled-header", "stalled-body"):
+            started = time.monotonic()
+            rejected = subprocess.run(
+                [str(paths["client"]), "invalid-frame", str(endpoint), hashes["server"], scenario],
+                capture_output=True, text=True, timeout=8)
+            elapsed = time.monotonic() - started
+            assert rejected.returncode == 0, (scenario, rejected.stdout, rejected.stderr)
+            assert rejected.stdout.strip() == "rejected " + scenario
+            assert elapsed < 7, (scenario, elapsed)
+            if scenario.startswith("stalled-"):
+                assert elapsed >= 1, ("idle client rejected before transport timeout", scenario, elapsed)
+            assert call("client", hashes["server"]).returncode == 0, scenario
+            print(f"PASS: authenticated {scenario} rejected; broker remains usable")
         duplicate = subprocess.run([str(paths["server"]), "server", str(state), hashes["client"]], capture_output=True, timeout=5)
         assert duplicate.returncode != 0
         print("PASS: duplicate broker cannot replace live socket")

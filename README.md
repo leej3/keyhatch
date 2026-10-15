@@ -22,6 +22,14 @@ A local pilot now provides mutually code-pinned IPC, explicit per-credential CLI
 approval, `run`, `check`, `lock`, and a host-scoped Git helper.
 See [LOCAL-PILOT.md](docs/LOCAL-PILOT.md).
 
+**Distribution work:** self-contained
+development/direct packages now validate their sealed embedded client, and a separate Xcode App Store candidate adds sandbox entitlements, private broker storage, and App Group IPC. Native selective import/deletion
+and Help → Keyhatch Privacy are available.
+The Store client rejects arbitrary-command `run`; direct builds retain it.
+Signed Store runtime testing, full Xcode archiving, production provisioning, and
+review remain release gates.
+See [distribution instructions and limits](docs/DISTRIBUTION.md).
+
 Implemented here:
 
 - A native SwiftUI review preview with **synthetic data only**, visible load

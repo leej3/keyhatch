@@ -9,12 +9,21 @@ private typealias ViewState<Value> = SwiftUI.State<Value>
 struct KeyhatchApp: App {
     @StateObject private var model = RealCredentialModel()
     var body: some Scene {
-        WindowGroup("Keyhatch · Development Preview") {
+        // One broker/session UI prevents a second window changing the credential
+        // behind an approval or disclosure confirmation in the first window.
+        Window("Keyhatch", id: "credentials") {
             TabView {
-                RealCredentialView(model: model).tabItem { Text("Real credential test") }
-                Dashboard().tabItem { Text("Synthetic policy demo") }
+                RealCredentialView(model: model).tabItem { Text("Credentials") }
+                if Bundle.main.object(forInfoDictionaryKey: "KeyhatchDistribution") as? String != "app-store" {
+                    Dashboard().tabItem { Text("Synthetic policy demo") }
+                }
             }.frame(minWidth: 860, minHeight: 680)
         }
+        .commands { PrivacyCommands() }
+        Window("Keyhatch Privacy", id: "privacy") {
+            PrivacyView()
+        }
+        .defaultSize(width: 680, height: 600)
     }
 }
 

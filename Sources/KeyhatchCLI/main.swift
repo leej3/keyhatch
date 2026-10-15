@@ -7,23 +7,6 @@ func fail(_ message: String) -> Never {
     FileHandle.standardError.write(Data((message + "\n").utf8)); exit(1)
 }
 
-func deployment() throws -> LocalDeployment {
-    // Resolve beside this installed binary, not through an agent-controlled request.
-    guard let actualExecutable = Bundle.main.executableURL else { throw IPCError.unsafePath }
-    let executable = actualExecutable.resolvingSymlinksInPath()
-    let path = executable.deletingLastPathComponent().appendingPathComponent("deployment.json")
-    let fd = Darwin.open(path.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
-    guard fd >= 0 else { throw IPCError.unsafePath }
-    defer { close(fd) }
-    var info = stat()
-    guard fstat(fd, &info) == 0, info.st_uid == getuid(), info.st_mode & S_IFMT == S_IFREG,
-          info.st_mode & 0o077 == 0, info.st_nlink == 1, info.st_size <= 8192 else { throw IPCError.unsafePath }
-    let data = try FileHandle(fileDescriptor: fd, closeOnDealloc: false).readToEnd() ?? Data()
-    let result = try JSONDecoder().decode(LocalDeployment.self, from: data)
-    guard LocalIPC.validHash(result.serverHash), LocalIPC.validHash(result.clientHash) else { throw IPCError.untrustedPeer }
-    return result
-}
-
 func boundedInput() throws -> String {
     var input = Data()
     while let byte = try FileHandle.standardInput.read(upToCount: 1), !byte.isEmpty {
@@ -39,16 +22,31 @@ do {
     try disableCoreDumps()
     let args = Array(CommandLine.arguments.dropFirst())
     guard let verb = args.first else {
-        fail("Usage: keyhatch status | lock | check HOST ACCOUNT | run HOST ACCOUNT --password-env NAME -- COMMAND | git --host HOST --username ACCOUNT get")
+        fail("Usage: keyhatch verify-installation | status | lock | check HOST ACCOUNT | run HOST ACCOUNT --password-env NAME -- COMMAND | git --host HOST --username ACCOUNT get")
     }
     if ["--help", "help"].contains(verb) {
-        print("Keyhatch local pilot: status, lock, check HOST ACCOUNT, run HOST ACCOUNT --password-env NAME [--username-env NAME] -- COMMAND, git --host HOST --username ACCOUNT get|store|erase. Unlock and approvals are in the app. No automatic fallback or Passwords fetch.")
+        print("Keyhatch: verify-installation, status, lock, check HOST ACCOUNT, run HOST ACCOUNT --password-env NAME [--username-env NAME] -- COMMAND, git --host HOST --username ACCOUNT get|store|erase. Unlock and approvals are in the app. The App Store variant does not support run. No automatic fallback or Passwords fetch.")
         exit(0)
     }
     if verb == "git" && (args.last == "store" || args.last == "erase") { exit(0) }
-    let trust = try deployment()
+    let configuration = try BundledDeployment.resolve()
+    let trust = configuration.deployment
+    if verb == "verify-installation" {
+        guard args.count == 1 else { throw IPCError.framing }
+        print("Keyhatch installation verified (\(configuration.distribution)).")
+        exit(0)
+    }
+    if verb == "run" && configuration.distribution == "app-store" {
+        fail("The App Store variant does not support running arbitrary commands. Use the direct-distribution app for this workflow.")
+    }
+    let root: URL
+    if let applicationURL = configuration.applicationURL {
+        guard let bundle = Bundle(url: applicationURL) else { throw IPCError.unsafePath }
+        root = try DeploymentPaths.ipcRoot(bundle: bundle)
+    } else { root = CredentialFiles.defaultRoot }
     func call(_ op: String, _ host: String? = nil, _ account: String? = nil) throws -> BrokerResponse {
-        try LocalIPC.call(BrokerRequest(operation: op, host: host, account: account), serverHash: trust.serverHash)
+        try LocalIPC.call(BrokerRequest(operation: op, host: host, account: account),
+                          serverHash: trust.serverHash, path: root.appendingPathComponent("broker.sock").path)
     }
     if verb == "status" || verb == "lock" {
         guard args.count == 1 else { throw IPCError.framing }

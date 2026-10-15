@@ -117,6 +117,24 @@ public final class CredentialFiles {
         try write(envelope, name: name, replacing: true)
     }
 
+    /// Delete only an inactive, validated encrypted record. Keep its lock inode so
+    /// cooperating processes cannot acquire different locks for the same name.
+    /// This removes the local file, not copies or credentials already disclosed.
+    public func remove(_ name: String) throws {
+        let lock = try lockFile(name)
+        defer { close(lock) }
+        _ = try read(name)
+        var info = stat()
+        guard fstatat(directory, name, &info, AT_SYMLINK_NOFOLLOW) == 0,
+              info.st_mode & S_IFMT == S_IFREG, info.st_uid == getuid(),
+              info.st_mode & 0o077 == 0, info.st_nlink == 1 else {
+            throw CredentialError.unsafeFile
+        }
+        guard unlinkat(directory, name, 0) == 0, fsync(directory) == 0 else {
+            throw CredentialError.storage
+        }
+    }
+
     private func write(_ envelope: EnclaveEnvelope, name: String, replacing: Bool) throws {
         try validateName(name)
         let data = try JSONEncoder().encode(envelope)

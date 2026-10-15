@@ -1,5 +1,35 @@
 # Verification record
 
+## Distribution alignment — 2026-10-15
+
+- Debug products and a self-contained Release development app compiled.
+  Nested signatures, Hardened Runtime, bundled privacy resources and the
+  embedded client's installation verification passed.
+- Core checks passed, including new source-expiry, deployment-path rejection,
+  inactive-record deletion and bounded legacy trust-file groups.
+- Separate-process IPC checks passed, including authenticated malformed,
+  oversized, truncated and stalled frames, with broker recovery after each.
+- Temporary sealed-bundle tests rejected altered metadata, nested signature
+  replacement, ad-hoc production identity, and fallback from broken bundles.
+- Release-validator tests rejected mismatched distribution channels, altered
+  resources, missing Hardened Runtime and a debug entitlement.
+- Native import, cancellation and deletion controls compiled; lifecycle review
+  scoped cancellation to its originating form and changed the credential UI to a
+  single window to prevent cross-window consent changes.
+- Generated Xcode project, scheme and entitlement property lists passed
+  structural checks; shell/Python syntax, Snapper and Git whitespace checks
+  passed.
+- Full Xcode is unavailable on this host.
+  No Store archive, Developer ID signing, provisioning, notarization, Store
+  download/re-sign behavior or sandboxed runtime was verified.
+- No GUI was launched, biometric prompt triggered, credential store accessed,
+  installed app replaced, or routing changed.
+  Native import/unlock/delete and exact-host network behavior still need
+  controlled packaged-app testing.
+
+See [distribution instructions](DISTRIBUTION.md) for the distinct direct and
+Store paths, supported commands and remaining release gates.
+
 ## Local replacement pilot implementation — 2026-10-15
 
 - Added same-user, kernel-audit-token/code-hash authentication in both

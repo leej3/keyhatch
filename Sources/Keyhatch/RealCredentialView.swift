@@ -34,22 +34,90 @@ final class RealCredentialModel: ObservableObject {
     private var storage: CredentialFiles?
     private var heldLock: Int32 = -1
     private var activeName = ""
-    private var start: Date?
-    private var monotonicStart: TimeInterval = 0
+    private var lifetime: SessionLifetime?
     private var generation = UUID()
+    private var importGeneration: UUID?
     private var network: URLSession?
     private var broker: BrokerServer?
-    private var clientHash: String { Bundle.main.object(forInfoDictionaryKey: "KeyhatchClientCDHash") as? String ?? "" }
+    private var clientHash = ""
+
+    /// Plaintext exists only in memory; cancellation invalidates the result before saving.
+    func importCredential(host: String, account: String, secret: String,
+                          fetchedAt: Date, expiresAt: Date, operationID: UUID) async -> Bool {
+        guard !Task.isCancelled else { return false }
+        guard !unlocked, !busy, let storage else {
+            status = "Lock the session and make private storage available before importing."
+            return false
+        }
+        generation = operationID
+        let token = generation
+        importGeneration = token
+        busy = true
+        status = "Encrypting one selected credential. No client access will be granted."
+        do {
+            let fields: [String: Any] = ["host": host, "account": account, "secret": secret,
+                "fetchedAt": fetchedAt.timeIntervalSince1970,
+                "expiresAt": expiresAt.timeIntervalSince1970, "history": []]
+            var record = try JSONDecoder().decode(CredentialRecord.self,
+                from: JSONSerialization.data(withJSONObject: fields))
+            try record.validate()
+            record.record("User imported one selected credential; no client access granted")
+            let payload = try JSONEncoder().encode(record)
+            let sealed = try await Task.detached { try EnclaveVault.seal(payload) }.value
+            guard generation == token, importGeneration == token else { return false }
+            guard !Task.isCancelled else { cancelImport(operationID); return false }
+            // Sealing or scheduling must not extend an already elapsed source lifetime.
+            try record.validate()
+            let name = try storage.create(sealed)
+            importGeneration = nil
+            busy = false
+            files = (try? storage.list()) ?? (files + [name]).sorted()
+            selected = name
+            status = "Imported one encrypted credential. Unlock and approve separately to allow retrieval."
+            return true
+        } catch {
+            guard generation == token, importGeneration == token else { return false }
+            importGeneration = nil
+            busy = false
+            status = "Import failed: check the host, account, secret, and original source times. No existing credential was replaced."
+            return false
+        }
+    }
+
+    func cancelImport(_ operationID: UUID) {
+        guard importGeneration == operationID, generation == operationID else { return }
+        importGeneration = nil
+        lock()
+        status = "Import canceled. No pending import will be saved."
+    }
+
+    func deleteCredential(_ name: String) {
+        guard !unlocked, !busy, name == selected, !name.isEmpty else { return }
+        do {
+            guard let storage else { throw CredentialError.storage }
+            try storage.remove(name)
+            files = (try? storage.list()) ?? files.filter { $0 != name }
+            selected = files.first ?? ""
+            status = "Deleted the selected local encrypted credential and its history. Source credentials, remote sessions, backups, and recipient copies are unchanged."
+        } catch {
+            status = "Deletion failed or another app instance holds the file. No remote credential was revoked."
+        }
+    }
 
     func refresh() {
         do {
             try disableCoreDumps()
-            let store = try CredentialFiles()
+            let store = try CredentialFiles(root: DeploymentPaths.credentialRoot())
             files = try store.list()
             storage = store
             if !files.contains(selected) { selected = files.last ?? "" }
             if broker == nil {
-                let service = try BrokerServer(clientHash: clientHash)
+                if Bundle.main.object(forInfoDictionaryKey: "KeyhatchDistribution") != nil {
+                    clientHash = try BundledDeployment.brokerClientHash()
+                } else {
+                    clientHash = Bundle.main.object(forInfoDictionaryKey: "KeyhatchClientCDHash") as? String ?? ""
+                }
+                let service = try BrokerServer(clientHash: clientHash, root: DeploymentPaths.ipcRoot())
                 service.start { [weak self] request in
                     self?.handle(request) ?? BrokerResponse(ok: false, status: "locked")
                 }
@@ -62,7 +130,7 @@ final class RealCredentialModel: ObservableObject {
     func lock() {
         generation = UUID()
         network?.invalidateAndCancel(); network = nil
-        key = nil; envelope = nil; start = nil; unlocked = false; busy = false; cliApproved = false
+        key = nil; envelope = nil; lifetime = nil; unlocked = false; busy = false; cliApproved = false
         host = ""; account = ""; expires = nil; history = []
         if heldLock >= 0 { close(heldLock); heldLock = -1 }
         status = "Locked. Future access denied; existing remote sessions are not revoked."
@@ -72,11 +140,11 @@ final class RealCredentialModel: ObservableObject {
         if unlocked && !active { lock(); status = "Session or credential expired; locked." }
     }
     private var active: Bool {
-        guard unlocked, let start, let expires else { return false }
-        let elapsed = Date().timeIntervalSince(start)
-        let monotonic = ProcessInfo.processInfo.systemUptime - monotonicStart
-        return elapsed >= 0 && elapsed < AccessPolicy.sessionDuration &&
-            monotonic >= 0 && monotonic < AccessPolicy.sessionDuration && Date() < expires
+        authorizationTime != nil
+    }
+    private var authorizationTime: Date? {
+        guard unlocked, let lifetime else { return nil }
+        return lifetime.authorizationTime(now: Date(), continuous: SessionLifetime.continuousTime())
     }
 
     func unlock() {
@@ -96,14 +164,21 @@ final class RealCredentialModel: ObservableObject {
                     guard generation == token else { return }
                     let record = try JSONDecoder().decode(CredentialRecord.self,
                         from: EnclaveVault.decrypt(sealed, using: sessionKey))
-                    try record.validate()
+                    // Read continuous time first so scheduling between the clock
+                    // samples can only shorten the remaining lifetime.
+                    let continuous = SessionLifetime.continuousTime()
+                    let now = Date()
+                    try record.validate(now: now)
+                    guard let lifetime = SessionLifetime(now: now,
+                        continuous: continuous, credentialExpiry: record.expiresAt)
+                    else { throw CredentialError.expired }
                     key = sessionKey; envelope = sealed; activeName = name
                     host = record.host; account = record.account
                     expires = Date(timeIntervalSince1970: record.expiresAt)
-                    start = Date(); monotonicStart = ProcessInfo.processInfo.systemUptime
+                    self.lifetime = lifetime
                     unlocked = true
                     cliApproved = record.brokerApproval?.permits(clientHash: clientHash,
-                        credentialExpiry: record.expiresAt) ?? false
+                        credentialExpiry: record.expiresAt, now: now) ?? false
                     try recordEvent("Unlocked for at most five hours; existing CLI approval re-evaluated")
                     status = "Loaded \(host) / \(account). No password value is displayed."
                     busy = false
@@ -181,14 +256,20 @@ final class RealCredentialModel: ObservableObject {
                 return BrokerResponse(ok: false, status: "credential not selected")
             }
             let record = try readRecord()
-            guard record.brokerApproval?.permits(clientHash: clientHash, credentialExpiry: record.expiresAt) == true else {
+            guard let authorizationTime,
+                  record.brokerApproval?.permits(clientHash: clientHash,
+                    credentialExpiry: record.expiresAt, now: authorizationTime) == true else {
                 cliApproved = false
                 try recordEvent("Denied CLI request: approval required or revoked")
                 return BrokerResponse(ok: false, status: "approval required or revoked")
             }
             try recordEvent(request.operation == "get" ? "Authorized pinned CLI credential release (recipient may retain a copy)" : "Pinned CLI availability check; no secret released")
             // The encrypted audit write may take time: recheck immediately before sending.
-            guard active else { lock(); return BrokerResponse(ok: false, status: "expired during request") }
+            guard let releaseTime = self.authorizationTime,
+                  record.brokerApproval?.permits(clientHash: clientHash,
+                    credentialExpiry: record.expiresAt, now: releaseTime) == true else {
+                lock(); return BrokerResponse(ok: false, status: "expired during request")
+            }
             return BrokerResponse(ok: true, status: "available", secret: request.operation == "get" ? record.secret : nil,
                                   expiresAt: record.expiresAt)
         } catch {
@@ -227,6 +308,10 @@ final class RealCredentialModel: ObservableObject {
             status = "Checking the selected host; response body will not be displayed."
             Task {
                 defer { session.invalidateAndCancel() }
+                // Scheduling may outlast the session. A stale task must not send
+                // credentials or lock a replacement session.
+                guard generation == token else { return }
+                guard active else { tick(); return }
                 do {
                     let (bytes, response) = try await session.bytes(for: request)
                     guard generation == token, active else { return }
@@ -263,6 +348,9 @@ struct RealCredentialView: View {
     @ObservedObject var model: RealCredentialModel
     @LocalViewState private var confirmRequest = false
     @LocalViewState private var confirmCLI = false
+    @LocalViewState private var showImporter = false
+    @LocalViewState private var confirmDelete = false
+    @LocalViewState private var pendingDeletion = ""
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -270,13 +358,21 @@ struct RealCredentialView: View {
             Text("Local pilot · Pinned CLI identity · No bulk Passwords access")
                 .foregroundStyle(.orange)
             Text(model.brokerStatus).font(.caption)
-            Text("Import one selected credential through the private-pipe importer. Encrypted files remain on this Mac; the source password store is unchanged.")
+            Text("Import one selected credential. Encrypted files remain on this Mac; the source password store is unchanged.")
             HStack {
                 Picker("Encrypted file", selection: $model.selected) {
                     Text("Select a file").tag("")
                     ForEach(model.files, id: \.self) { Text($0).tag($0) }
                 }.disabled(model.unlocked || model.busy)
                 Button("Refresh files") { model.refresh() }.disabled(model.busy || model.unlocked)
+            }
+            HStack {
+                Button("Import one credential…") { showImporter = true }
+                    .disabled(model.busy || model.unlocked)
+                Button("Delete selected file…", role: .destructive) {
+                    pendingDeletion = model.selected
+                    confirmDelete = true
+                }.disabled(model.selected.isEmpty || model.busy || model.unlocked)
             }
             HStack {
                 Button("Unlock selected file with Touch ID") { model.unlock() }
@@ -315,6 +411,12 @@ struct RealCredentialView: View {
         .onDisappear { model.lock() }
         .onReceive(timer) { _ in model.tick() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in model.lock() }
+        .sheet(isPresented: $showImporter) { CredentialImportView(model: model) }
+        .confirmationDialog("Delete the selected encrypted credential and its local history? This cannot be undone here. It does not delete the source credential, revoke remote access, or remove backups or recipient copies.",
+                            isPresented: $confirmDelete) {
+            Button("Delete local credential", role: .destructive) { model.deleteCredential(pendingDeletion) }
+            Button("Cancel", role: .cancel) {}
+        }
         .confirmationDialog("Send the selected credential to \(model.host) for a read-only identity check?",
                             isPresented: $confirmRequest) {
             Button("Send to selected host") { model.checkForgeIdentity() }

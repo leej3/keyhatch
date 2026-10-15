@@ -4,6 +4,9 @@ Keyhatch is experimental.
 Do not treat this development build as a hardened boundary against another
 unrestricted process running as your macOS user.
 
+New self-contained packages validate sealed
+app/client identities instead of using a writable deployment manifest. The App Store candidate separates private credential storage from shared IPC and requests limited sandbox entitlements. Its signed runtime behavior and App Store acceptance are unverified. See [distribution and same-user tampering details](docs/DISTRIBUTION.md).
+
 ## Known limits
 
 - IPC authenticates same-user peers by kernel audit token and pinned running
@@ -13,8 +16,10 @@ unrestricted process running as your macOS user.
   Demo client labels are still not identity.
   Source/deployment modification by an unrestricted same-user attacker remains
   outside the boundary.
-- The local app/CLI use hardened ad-hoc signing, not sandboxing, notarization or
+- The local pilot uses hardened ad-hoc signing, not sandboxing, notarization or
   an independent audit.
+  New distribution tooling supports production signing and a sandboxed Store
+  candidate, but no production signing or notarization was performed here.
   Same-user code can modify the executable or state.
   Hardware wrapping does not solve software tampering while unlocked.
 - AES keys and transient plaintext exist in application memory.
