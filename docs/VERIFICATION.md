@@ -1,5 +1,52 @@
 # Verification record
 
+## Non-biometric release preparation — 2026-10-15
+
+- Three separate agents reviewed lifecycle,
+  privacy/API use and security. The security review reproduced and fixed a FIFO file open that blocked before type validation; its regression failed before the fix and passed afterward. Core checks passed with the new deterministic clock/approval
+  tests, including a 49-case elapsed-time matrix and serialized approval
+  replacement checks.
+  This is agent review, not an independent external assessment.
+- Separate-process synthetic IPC checks passed: kernel peer authentication,
+  framing bounds/timeouts, duplicate-broker rejection and stale-socket recovery.
+  Bundled deployment checks and release-validator rejection regressions passed,
+  including wrong entitlements, runtime flags and identity in a non-native
+  slice.
+- Rebuilt candidate 0.1.0 build 2 as universal Developer ID, Apple Distribution
+  and Apple Development artifacts.
+  Direct executing-client validation and Store static validation passed.
+  The new `scripts/export-store.sh` exported locally, verified the installer
+  signature and validated the expanded signed payload.
+  Final privacy resources parsed, and all ten executable/architecture symbol
+  inspections succeeded.
+- A disposable signed development Store app under `/Applications` passed locked
+  IPC, App Group scratch access, denied outbound loopback with an unsandboxed
+  positive control, and rejection of a changed signed client.
+  The private-file denial probe was explicitly skipped this run because no new
+  synthetic private record was created; earlier private-file isolation evidence
+  remains separate.
+- Native UI checks without authentication passed: empty locked Store window,
+  incomplete import disabled, import cancellation leaving no record, and privacy
+  policy/contact available without unlock.
+  The test app was closed and moved back into ignored build storage.
+  No biometric operation was invoked.
+- Public support/private reporting contact is support@pythonaisolutions.com.
+  Release description, metadata, review instructions and support pages are
+  drafted in `release/`.
+  Screenshot export was blocked by macOS Screen Recording permission; no
+  finished screenshot assets are claimed.
+- Under the existing installation-update approval, switched the live direct
+  deployment to build 2 with its previous build retained.
+  Native UI and signed client report a ready, locked broker.
+  Credential file count, sizes and mtimes were unchanged; no credential payload
+  was read or rewritten by the update.
+  Unlock/retrieval after this update remains deferred.
+- Native biometric/sleep/upgrade retrieval tests remain deferred at the owner
+  request.
+  Actual Store delivery, other supported hardware/OS runtime, notarization,
+  release declarations, Apple submission and public distribution remain gates.
+  No upload, agreement acceptance or public binary release occurred.
+
 ## App icon and local signed update — 2026-10-15
 
 - Converted the existing README SVG into the ten macOS asset-catalog sizes and

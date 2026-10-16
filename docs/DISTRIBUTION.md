@@ -163,8 +163,8 @@ App Store distribution signatures may also require Store installation before
 execution, so do not use a failed archive launch as evidence that its static
 signatures are invalid.
 
-Xcode Organizer provides the separate App Store export/upload workflow and
-appropriate installer signing.
+Xcode Organizer provides the separate App Store
+export/upload workflow and appropriate installer signing. `scripts/export-store.sh ARCHIVE_PATH` performs a validated local installer export using the same team/profile settings plus `KEYHATCH_INSTALLER_IDENTITY`.
 A local export uses `destination=export`; `destination=upload` is a separate
 release action. macOS installer export needs a Mac Installer Distribution
 certificate in addition to Apple Distribution.
@@ -176,6 +176,17 @@ when re-signing.
 Both peers still authenticate exact current code over IPC, and approvals remain
 bound to the client build.
 Actual downloaded Store signature behavior is not yet verified.
+
+## Release preparation status
+
+Candidate 0.1.0 build 2 has signed direct and Store packages, a repeatable local
+Store export command, release copy,
+support/privacy contact and review notes. See [the release checklist](../release/RELEASE-CHECKLIST.md),
+[privacy API audit](PRIVACY-API-AUDIT.md),
+[lifecycle review](LIFECYCLE-REVIEW.md), and
+[independent agent security review](INDEPENDENT-AGENT-REVIEW.md).
+The agent review corrected a local FIFO denial-of-service issue; it is not an
+external human security audit.
 
 ## Remaining release gates
 
@@ -193,15 +204,17 @@ Actual downloaded Store signature behavior is not yet verified.
   sleep/expiry and upgrade coverage with synthetic records. Signed development import, biometric unlock, per-record approval, repeated retrieval, cross-host denial, revocation, lock and deletion passed. A failed/cancelled
   authentication attempt preserved locked denial.
   Do not extrapolate these checks to every lifecycle or OS version.
-- The README icon is now included in signed direct and Store packages.
-  Supply final production identity/version metadata, support contact, hosted
-  privacy policy URL, App Store Connect privacy answers, screenshots, and
-  transparent review instructions explaining credential handoff and the nested
-  client.
+- Icon, candidate
+  identity/version metadata, support contact, draft Store copy, policy and review instructions are prepared under `release/`.
+  Confirm final policy/support URLs and publisher declarations, and complete
+  screenshot export after granting native capture permission.
   The accessible in-app policy is under Help → Keyhatch Privacy.
-- Review the privacy manifest against actual API use and all shipped targets.
-  Current declarations cover local file metadata and elapsed-time use, with no
-  tracking or developer data collection.
+- The source and final package privacy audit passed for all shipped targets.
+  Recheck it when APIs, dependencies or data practices change, and confirm the
+  final App Store Connect privacy answers before submission.
+  Current declarations cover Store container file metadata and elapsed-time use,
+  with no tracking or developer data collection; the audit distinguishes direct
+  legacy storage from the Store container reason.
   See Apple's
   [required-reason API guidance](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacyaccessedapitypes/nsprivacyaccessedapitype).
 - Consider a versioned broker-only Data Protection Keychain record for the

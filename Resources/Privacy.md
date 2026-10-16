@@ -65,3 +65,9 @@ Tools receiving credentials, credential sources, and remote services have their
 own privacy practices.
 This policy is available in the app under **Help → Keyhatch Privacy** without
 importing or unlocking a credential.
+
+## Contact
+
+For privacy questions or requests, email
+[support@pythonaisolutions.com](mailto:support@pythonaisolutions.com).
+Do not send passwords, tokens, or encrypted credential files.

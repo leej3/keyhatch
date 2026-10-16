@@ -32,7 +32,8 @@ Signed development Store archives and controlled synthetic runtime checks now
 pass, as do Developer ID package validation and local App Store installer
 export.
 Broader lifecycle coverage, notarization and review remain release gates.
-See [distribution instructions and limits](docs/DISTRIBUTION.md).
+See [distribution instructions and limits](docs/DISTRIBUTION.md) and the
+[release preparation checklist](release/RELEASE-CHECKLIST.md).
 
 Implemented here:
 

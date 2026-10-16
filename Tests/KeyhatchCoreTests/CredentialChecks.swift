@@ -68,6 +68,22 @@ func runCredentialChecks() {
         try FileManager.default.createSymbolicLink(at: root.appendingPathComponent(linkName),
                                                   withDestinationURL: root.appendingPathComponent(name))
         rejects { _ = try files.read(linkName) }
+        // A hostile same-user writer can replace an encrypted record with a
+        // FIFO. Reject it before a blocking open can stall unlock or deletion.
+        let fifoName = UUID().uuidString + ".keyhatch"
+        precondition(mkfifo(root.appendingPathComponent(fifoName).path, 0o600) == 0)
+        let rejectedFIFO = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            do {
+                _ = try files.read(fifoName)
+                preconditionFailure("FIFO accepted as a credential file")
+            } catch {
+                rejectedFIFO.signal()
+            }
+        }
+        precondition(rejectedFIFO.wait(timeout: .now() + 5) == .success,
+                     "Credential read blocked opening a FIFO")
+        print("PASS: FIFO credential file rejected without waiting for a writer")
         try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: root.appendingPathComponent(name).path)
         rejects { _ = try files.read(name) }
         print("PASS: owner-only persistence, atomic update, locks, traversal/symlink/permission rejection")

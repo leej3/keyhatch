@@ -35,6 +35,9 @@ struct PrivacyView: View {
                 section("Retention and your controls",
                     "Credential access is limited to the source expiry, at most three days from retrieval. An unlocked session lasts at most five hours. Each encrypted record keeps its latest 200 local history events; older events are dropped when new events are recorded. Expiry stops access but does not automatically erase the encrypted record. Local records remain until deleted. Lock or revoke access in the credential window. While locked, select an encrypted file and choose Delete selected file to remove that local record and its history. Deletion does not remove the original credential from its source. Backups and recipient copies require separate removal. Revoke or rotate a credential at its issuing service if you need to invalidate it.")
 
+                section("Contact",
+                    "For privacy questions or requests, email support@pythonaisolutions.com. Do not send passwords, tokens, or encrypted credential files.")
+
                 section("About this policy",
                     "This policy describes Keyhatch itself. Tools receiving credentials, credential sources, and remote services have their own privacy practices. This policy is available without importing or unlocking a credential.")
             }

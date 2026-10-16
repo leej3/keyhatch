@@ -47,11 +47,9 @@ app/client identities instead of using a writable deployment manifest. The App S
 
 ## Reporting
 
-The repository is public, but a monitored private security disclosure endpoint
-has not yet been published.
-Maintainers must establish one before distributing a production release.
-Until then, report suspected issues privately to the maintainer through an
-existing trusted channel.
+Report suspected vulnerabilities privately to
+[support@pythonaisolutions.com](mailto:support@pythonaisolutions.com).
+Do not post vulnerability details in a public issue before coordinated review.
 Describe affected versions and a synthetic reproduction.
 Never include live credentials or personal vault files.
 

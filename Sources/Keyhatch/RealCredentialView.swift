@@ -354,9 +354,9 @@ struct RealCredentialView: View {
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Keyhatch · Real credential test").font(.title.bold())
-            Text("Local pilot · Pinned CLI identity · No bulk Passwords access")
-                .foregroundStyle(.orange)
+            Text("Keyhatch · Credentials").font(.title.bold())
+            Text("Selective credential sharing · No bulk Passwords access")
+                .foregroundStyle(.secondary)
             Text(model.brokerStatus).font(.caption)
             Text("Import one selected credential. Encrypted files remain on this Mac; the source password store is unchanged.")
             HStack {

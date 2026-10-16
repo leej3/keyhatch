@@ -90,7 +90,9 @@ public final class CredentialFiles {
     }
     public func read(_ name: String) throws -> EnclaveEnvelope {
         try validateName(name)
-        let fd = openat(directory, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        // Type validation follows open: nonblocking mode prevents a FIFO from
+        // waiting for a writer before fstat can reject it as a non-regular file.
+        let fd = openat(directory, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
         guard fd >= 0 else { throw CredentialError.unsafeFile }
         defer { close(fd) }
         var info = stat()

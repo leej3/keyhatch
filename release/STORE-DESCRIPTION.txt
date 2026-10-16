@@ -1,0 +1,18 @@
+Keyhatch gives local tools access to credentials you deliberately choose to share.
+
+Import one password or token, preserve its original expiry, and keep it encrypted on your Mac. Unlock with Touch ID, then approve the bundled command-line client to retrieve that credential while your session and approval remain valid.
+
+• Selective import: no bulk access to Apple Passwords or another password store.
+• Local encrypted storage with Secure Enclave protection for key use.
+• Sessions lasting at most five hours and credential availability bounded by the original expiry, at most three days from retrieval.
+• Explicit approval, revocation, lock, deletion, and recent encrypted activity history.
+• A host-scoped Git credential helper and command-line status and lock controls.
+• No developer-operated cloud vault, analytics, advertising, or subscription service.
+
+The Mac App Store edition uses separate sandboxes for the app and its bundled client. It does not run arbitrary commands or install a background service. The client remains inside the app bundle; setup instructions explain how to invoke it from Terminal.
+
+Credential handoff is intentional: any tool that receives a secret can retain it. Other tools under your macOS account may invoke the approved client. Locking or revoking access stops future retrieval but cannot retract a disclosed secret or end an existing remote session.
+
+Requires macOS 14 or later, a Mac with Secure Enclave, and configured Touch ID. Keyhatch has no password fallback for its credential unlock. Your original password store remains separate and should remain your recovery source.
+
+Source code is available under MPL-2.0 at https://github.com/leej3/keyhatch.
