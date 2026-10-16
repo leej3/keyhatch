@@ -11,6 +11,7 @@ mkdir -p "$preview_bundle/Contents/Resources"
 cp "$preview_binary_dir/Keyhatch" "$preview_bundle/Contents/MacOS/Keyhatch"
 cp Resources/Info.plist "$preview_bundle/Contents/Info.plist"
 cp LICENSE "$preview_bundle/Contents/Resources/LICENSE"
+cp Resources/Keyhatch.icns "$preview_bundle/Contents/Resources/Keyhatch.icns"
 # Hardened ad-hoc builds for a local pilot; not provisioned/notarized for distribution.
 codesign --force --options runtime --sign - --identifier local.keyhatch.cli "$preview_binary_dir/KeyhatchCLI"
 preview_client_hash="$(codesign -d --verbose=4 "$preview_binary_dir/KeyhatchCLI" 2>&1 | awk -F= '/^CDHash=/{print $2}')"

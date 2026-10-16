@@ -50,7 +50,7 @@ def main():
     for source, name in (("Keyhatch", "Keyhatch"), ("KeyhatchCLI", "KeyhatchCLI"),
                          ("KeyhatchImport", "KeyhatchImport")):
         shutil.copy2(binaries / source, macos / name)
-    for source in ("Resources/Privacy.md", "Resources/PrivacyInfo.xcprivacy", "LICENSE"):
+    for source in ("Resources/Privacy.md", "Resources/PrivacyInfo.xcprivacy", "Resources/Keyhatch.icns", "LICENSE"):
         shutil.copy2(ROOT / source, resources / Path(source).name)
     with (ROOT / "Resources/Info.plist").open("rb") as stream:
         info = plistlib.load(stream)

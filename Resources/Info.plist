@@ -5,6 +5,7 @@
     <key>CFBundleExecutable</key><string>Keyhatch</string>
     <key>CFBundleIdentifier</key><string>local.keyhatch.preview</string>
     <key>CFBundleName</key><string>Keyhatch Preview</string>
+    <key>CFBundleIconFile</key><string>Keyhatch</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1.0</string>
     <key>CFBundleVersion</key><string>1</string>

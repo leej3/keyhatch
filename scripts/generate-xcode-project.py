@@ -64,6 +64,8 @@ for path in ("Resources/Privacy.md", "Resources/PrivacyInfo.xcprivacy", "LICENSE
     resources.append(ref)
 for path in sorted((ROOT / "Configuration").glob("*")):
     references.append(file(str(path.relative_to(ROOT)), "text.plist.xml"))
+icon_catalog = file("Resources/Assets.xcassets", "folder.assetcatalog")
+references.append(icon_catalog)
 products = {}
 for name, path, kind in (("Core", "libKeyhatchCore.a", "archive.ar"),
                          ("App", "Keyhatch.app", "wrapper.application"),
@@ -93,7 +95,7 @@ for name in ("Core", "Client", "App"):
         phases.append(phase(name + "frameworks", "PBXFrameworksBuildPhase",
                             [build_file(name + "linkcore", products["Core"])]))
         phases.append(phase(name + "resources", "PBXResourcesBuildPhase",
-                            [build_file(name + str(i), ref) for i, ref in enumerate(resources)]))
+                            [build_file(name + str(i), ref) for i, ref in enumerate(resources + ([icon_catalog] if name == "App" else []))]))
         dependencies.append(dependency(name + "core", "Core"))
         settings.update(PRODUCT_BUNDLE_IDENTIFIER="$(KEYHATCH_BUNDLE_ID)" + (".client" if name == "Client" else ""),
                         INFOPLIST_FILE="Configuration/StoreClientInfo.plist" if name == "Client" else "Configuration/StoreInfo.plist",
@@ -103,6 +105,7 @@ for name in ("Core", "Client", "App"):
                         INSTALL_PATH="$(LOCAL_APPS_DIR)", EXECUTABLE_NAME="keyhatch" if name == "Client" else "Keyhatch")
         product_type = "com.apple.product-type.application"
         if name == "App":
+            settings["ASSETCATALOG_COMPILER_APPICON_NAME"] = "AppIcon"
             dependencies.append(dependency("appclient", "Client"))
             phases.append(phase("embedclient", "PBXCopyFilesBuildPhase",
                 [build_file("embedclient", products["Client"], settings={"ATTRIBUTES": ["CodeSignOnCopy", "RemoveHeadersOnCopy"]})],

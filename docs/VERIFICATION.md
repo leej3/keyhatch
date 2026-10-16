@@ -1,5 +1,27 @@
 # Verification record
 
+## App icon and local signed update — 2026-10-15
+
+- Converted the existing README SVG into the ten macOS asset-catalog sizes and
+  an ICNS resource; connected preview, direct and Store packaging.
+- Rebuilt the universal Developer ID app and manually provisioned Store archive.
+  Direct executing-client validation and Store static validation passed.
+  Exported the Store installer locally, verified its installer signature, and
+  reran strict static validation on its extracted app.
+  No upload, notarization or Store installation was performed.
+- After explicit user approval, installed the signed direct app into a fresh
+  local release directory and atomically switched the existing command link.
+  Kept the previous deployment for rollback and restarted Keyhatch.
+  Native UI showed the existing encrypted record and a ready, locked broker; the
+  installed CLI passed `verify-installation` and authenticated `status`.
+  Credential file count, sizes and modification times remained unchanged.
+  No credential was decrypted or rewritten during this update.
+- macOS resolved the installed bundle to the intended README icon, verified
+  through NSWorkspace rendering.
+  Existing approvals remain bound to the old client build; the new client
+  requires user unlock and approval before retrieval.
+  Unlock/retrieval after this live update remains unverified.
+
 ## Signed packaging and sandbox validation — 2026-10-15
 
 - Apple Developer membership and Certificates, Identifiers & Profiles access

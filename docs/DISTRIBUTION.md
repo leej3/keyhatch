@@ -35,6 +35,15 @@ The Store app performs native selective import itself; the external importer
 cannot write into the broker's private container.
 The client only shares the IPC group, not the broker's credential directory.
 
+## App icon
+
+The app uses the README artwork in `docs/images/keyhatch.svg`.
+The checked-in macOS asset catalog supplies the Store app icon; preview and
+direct bundles include `Resources/Keyhatch.icns`.
+To regenerate both from the SVG, run `python3 scripts/generate-app-icon.py` with
+`rsvg-convert` (librsvg) and macOS `iconutil` installed.
+Ordinary builds do not need the SVG renderer.
+
 ## Build a local self-contained package
 
 ```sh
@@ -83,7 +92,9 @@ ticket, and runs Gatekeeper assessment.
 Notarization results are retained for review.
 Repackage the stapled app for delivery; the original submission ZIP predates
 stapling.
-No notarization or installation was performed as part of this implementation.
+The signed direct app was installed locally with user approval; the previous
+build was retained for rollback and encrypted credential files were unchanged.
+Notarization and public release have not been performed.
 See Apple's
 [direct distribution requirements](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
 
@@ -182,10 +193,11 @@ Actual downloaded Store signature behavior is not yet verified.
   sleep/expiry and upgrade coverage with synthetic records. Signed development import, biometric unlock, per-record approval, repeated retrieval, cross-host denial, revocation, lock and deletion passed. A failed/cancelled
   authentication attempt preserved locked denial.
   Do not extrapolate these checks to every lifecycle or OS version.
-- Supply final app icon/assets, production identity/version metadata, support
-  contact, hosted privacy policy URL, App Store Connect privacy answers,
-  screenshots, and transparent review instructions explaining credential handoff
-  and the nested client.
+- The README icon is now included in signed direct and Store packages.
+  Supply final production identity/version metadata, support contact, hosted
+  privacy policy URL, App Store Connect privacy answers, screenshots, and
+  transparent review instructions explaining credential handoff and the nested
+  client.
   The accessible in-app policy is under Help → Keyhatch Privacy.
 - Review the privacy manifest against actual API use and all shipped targets.
   Current declarations cover local file metadata and elapsed-time use, with no
