@@ -5,7 +5,7 @@ Do not treat this development build as a hardened boundary against another
 unrestricted process running as your macOS user.
 
 New self-contained packages validate sealed
-app/client identities instead of using a writable deployment manifest. The App Store candidate separates private credential storage from shared IPC and requests limited sandbox entitlements. Its signed runtime behavior and App Store acceptance are unverified. See [distribution and same-user tampering details](docs/DISTRIBUTION.md).
+app/client identities instead of using a writable deployment manifest. The App Store candidate separates private credential storage from shared IPC and requests limited sandbox entitlements. Controlled signed development runtime checks passed with synthetic data; App Store delivery and acceptance remain unverified. See [distribution and same-user tampering details](docs/DISTRIBUTION.md).
 
 ## Known limits
 
@@ -19,7 +19,9 @@ app/client identities instead of using a writable deployment manifest. The App S
 - The local pilot uses hardened ad-hoc signing, not sandboxing, notarization or
   an independent audit.
   New distribution tooling supports production signing and a sandboxed Store
-  candidate, but no production signing or notarization was performed here.
+  candidate.
+  Developer ID package signing/validation and signed Store development checks
+  passed; notarization and Store release remain pending.
   Same-user code can modify the executable or state.
   Hardware wrapping does not solve software tampering while unlocked.
 - AES keys and transient plaintext exist in application memory.
@@ -45,9 +47,9 @@ app/client identities instead of using a writable deployment manifest. The App S
 
 ## Reporting
 
-There is not yet a public repository or private disclosure endpoint.
-Before public release, maintainers must publish a monitored private security
-contact.
+The repository is public, but a monitored private security disclosure endpoint
+has not yet been published.
+Maintainers must establish one before distributing a production release.
 Until then, report suspected issues privately to the maintainer through an
 existing trusted channel.
 Describe affected versions and a synthetic reproduction.

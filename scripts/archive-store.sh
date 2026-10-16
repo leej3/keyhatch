@@ -19,5 +19,6 @@ xcodebuild -project Keyhatch.xcodeproj -scheme 'Keyhatch Store' -configuration R
     DEVELOPMENT_TEAM="$KEYHATCH_TEAM" KEYHATCH_BUNDLE_ID="$KEYHATCH_BUNDLE_ID" \
     KEYHATCH_APP_GROUP="$KEYHATCH_APP_GROUP" KEYHATCH_BROKER_PROFILE="$KEYHATCH_BROKER_PROFILE" \
     KEYHATCH_CLIENT_PROFILE="$KEYHATCH_CLIENT_PROFILE" archive
-python3 scripts/validate-release.py "$keyhatch_archive_dir/Keyhatch.xcarchive/Products/Applications/Keyhatch.app" --channel app-store
+python3 scripts/validate-release.py "$keyhatch_archive_dir/Keyhatch.xcarchive/Products/Applications/Keyhatch.app" --channel app-store --static-only
+printf 'Runtime validation remains required using a runnable, provisioned copy under /Applications.\n'
 printf 'Local archive: %s\nReview/export with Xcode Organizer; no submission performed.\n' "$keyhatch_archive_dir/Keyhatch.xcarchive"

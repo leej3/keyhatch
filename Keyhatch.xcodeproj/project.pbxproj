@@ -63,6 +63,8 @@
 				<string>dwarf-with-dsym</string>
 				<key>DEVELOPMENT_TEAM</key>
 				<string></string>
+				<key>ENABLE_DEBUG_DYLIB</key>
+				<string>NO</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
 				<string>YES</string>
 				<key>KEYHATCH_APP_GROUP</key>
@@ -75,6 +77,8 @@
 				<string>14.0</string>
 				<key>ONLY_ACTIVE_ARCH</key>
 				<string>NO</string>
+				<key>REGISTER_APP_GROUPS</key>
+				<string>YES</string>
 				<key>SDKROOT</key>
 				<string>macosx</string>
 				<key>SWIFT_INCLUDE_PATHS</key>
@@ -272,6 +276,41 @@
 			<dict>
 				<key>LastUpgradeCheck</key>
 				<string>1600</string>
+				<key>TargetAttributes</key>
+				<dict>
+					<key>0C77FE09AB336A3E57CC2B68</key>
+					<dict>
+						<key>SystemCapabilities</key>
+						<dict>
+							<key>com.apple.ApplicationGroups.iOS</key>
+							<dict>
+								<key>enabled</key>
+								<string>1</string>
+							</dict>
+							<key>com.apple.Sandbox</key>
+							<dict>
+								<key>enabled</key>
+								<string>1</string>
+							</dict>
+						</dict>
+					</dict>
+					<key>0D04BFEB7D64B71C74FC925C</key>
+					<dict>
+						<key>SystemCapabilities</key>
+						<dict>
+							<key>com.apple.ApplicationGroups.iOS</key>
+							<dict>
+								<key>enabled</key>
+								<string>1</string>
+							</dict>
+							<key>com.apple.Sandbox</key>
+							<dict>
+								<key>enabled</key>
+								<string>1</string>
+							</dict>
+						</dict>
+					</dict>
+				</dict>
 			</dict>
 			<key>buildConfigurationList</key>
 			<string>76F8DEC3DFE0BDB465198890</string>
@@ -603,6 +642,8 @@
 				<string>dwarf</string>
 				<key>DEVELOPMENT_TEAM</key>
 				<string></string>
+				<key>ENABLE_DEBUG_DYLIB</key>
+				<string>NO</string>
 				<key>ENABLE_HARDENED_RUNTIME</key>
 				<string>YES</string>
 				<key>KEYHATCH_APP_GROUP</key>
@@ -615,6 +656,8 @@
 				<string>14.0</string>
 				<key>ONLY_ACTIVE_ARCH</key>
 				<string>NO</string>
+				<key>REGISTER_APP_GROUPS</key>
+				<string>YES</string>
 				<key>SDKROOT</key>
 				<string>macosx</string>
 				<key>SWIFT_INCLUDE_PATHS</key>

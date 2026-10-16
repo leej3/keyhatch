@@ -28,8 +28,10 @@ See [LOCAL-PILOT.md](docs/LOCAL-PILOT.md).
 development/direct packages now validate their sealed embedded client, and a separate Xcode App Store candidate adds sandbox entitlements, private broker storage, and App Group IPC. Native selective import/deletion
 and Help → Keyhatch Privacy are available.
 The Store client rejects arbitrary-command `run`; direct builds retain it.
-Signed Store runtime testing, full Xcode archiving, production provisioning, and
-review remain release gates.
+Signed development Store archives and controlled synthetic runtime checks now
+pass, as do Developer ID package validation and local App Store installer
+export.
+Broader lifecycle coverage, notarization and review remain release gates.
 See [distribution instructions and limits](docs/DISTRIBUTION.md).
 
 Implemented here:
@@ -47,9 +49,9 @@ Implemented here:
   It may request Touch ID; failure is not treated as success or replaced with a
   weaker path.
 
-**Not yet implemented:** production provisioning/notarization, direct Apple
-Passwords integration in the app, protected native secret buffers, multi-account
-unlocked sessions, constrained operation adapters, or App Store distribution.
+**Not yet completed:** notarization, direct Apple Passwords integration in the
+app, protected native secret buffers, multi-account unlocked sessions,
+constrained operation adapters, or App Store distribution.
 The synthetic dashboard is not a security boundary; real CLI approval is
 separate and stored inside the encrypted credential record.
 

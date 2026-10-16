@@ -78,6 +78,7 @@ project_config = configs("project", {
     "KEYHATCH_BUNDLE_ID": "com.example.keyhatch", "KEYHATCH_APP_GROUP": "",
     "DEVELOPMENT_TEAM": "", "CODE_SIGN_STYLE": "Manual",
     "CODE_SIGN_IDENTITY": "Apple Distribution", "ENABLE_HARDENED_RUNTIME": "YES",
+    "REGISTER_APP_GROUPS": "YES", "ENABLE_DEBUG_DYLIB": "NO",
     "CODE_SIGN_INJECT_BASE_ENTITLEMENTS": "NO", "SWIFT_INCLUDE_PATHS": "$(inherited) $(BUILT_PRODUCTS_DIR)",
     "LIBRARY_SEARCH_PATHS": "$(inherited) $(BUILT_PRODUCTS_DIR)"})
 for name in ("Core", "Client", "App"):
@@ -109,7 +110,10 @@ for name in ("Core", "Client", "App"):
     obj(name, "PBXNativeTarget", name={"App": "Keyhatch", "Core": "KeyhatchCore", "Client": "KeyhatchClient"}[name],
         productName=settings["PRODUCT_NAME"], productReference=products[name], productType=product_type,
         buildConfigurationList=configs(name, settings), buildPhases=phases, buildRules=[], dependencies=dependencies)
-obj("project", "PBXProject", attributes={"LastUpgradeCheck": "1600"},
+obj("project", "PBXProject", attributes={"LastUpgradeCheck": "1600",
+    "TargetAttributes": {identifier(name): {"SystemCapabilities": {
+        "com.apple.ApplicationGroups.iOS": {"enabled": "1"},
+        "com.apple.Sandbox": {"enabled": "1"}}} for name in ("App", "Client")}},
     buildConfigurationList=project_config, compatibilityVersion="Xcode 14.0", developmentRegion="en",
     hasScannedForEncodings="0", knownRegions=["en", "Base"], mainGroup=main_group,
     productRefGroup=product_group, projectDirPath="", projectRoot="",

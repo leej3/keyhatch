@@ -116,5 +116,8 @@ do {
     try child.run(); child.waitUntilExit()
     exit(child.terminationReason == .exit ? child.terminationStatus : 128 + child.terminationStatus)
 } catch {
+    if CommandLine.arguments.dropFirst().first == "verify-installation" {
+        fail("Keyhatch installation verification failed. For a sandboxed Store client, use a validated installation under /Applications; build and archive directories may be inaccessible. No credential fallback performed.")
+    }
     fail("Keyhatch unavailable, untrusted, or invalid request. Open the installed app; check deployment/unlock. No credential fallback performed.")
 }

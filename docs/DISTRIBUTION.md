@@ -8,8 +8,8 @@ Expiry bounds future retrieval, not the lifetime of a recipient's copy.
 
 | Capability | Direct/development bundle | App Store candidate |
 | --- | --- | --- |
-| Native selective import, unlock, approval, deletion | Implemented | Same source; packaged runtime pending |
-| CLI status, lock, check, host-scoped Git handoff | Implemented | Independently sandboxed client; signed runtime pending |
+| Native selective import, unlock, approval, deletion | Implemented | Signed development runtime exercised |
+| CLI status, lock, check, host-scoped Git handoff | Implemented | Independently sandboxed client; signed development checks passed |
 | `run` with an arbitrary child environment | Supported | Explicitly rejected before IPC |
 | Private-pipe importer | Embedded | Not packaged |
 | Credential storage | Existing `~/.local/state/keyhatch` | Broker's Application Support inside its sandbox |
@@ -26,8 +26,9 @@ Apple describes
 [sandboxed helper construction](https://developer.apple.com/documentation/xcode/embedding-a-helper-tool-in-a-sandboxed-app)
 and
 [App Group IPC](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.security.application-groups).
-Store compatibility of this particular Terminal-launched client remains a
-signed-runtime and review gate.
+The signed development client has passed controlled runtime checks under
+`/Applications`.
+App Store delivery and review remain separate gates.
 
 Neither variant automatically scans or migrates existing credential stores.
 The Store app performs native selective import itself; the external importer
@@ -94,13 +95,19 @@ Regenerate after adding Swift files.
 It contains native app, static core, and nested client app targets, with a
 shared `Keyhatch Store` scheme.
 Full Xcode is required.
-Xcode 27.0 has built and archived both universal targets with signing disabled;
-production signing and sandboxed runtime remain unverified.
+Xcode 27.0 has built and archived both universal targets with Apple Development
+signing, separate explicit profiles, and the dedicated App Group.
+Controlled sandboxed runtime checks passed on the development-signed package;
+Apple Distribution profiles and a locally exported Mac Installer Distribution
+package also passed static validation.
+Store delivery remains a separate gate.
 
 Register a broker bundle ID, its `.client` helper ID, and one authorized App
 Group in the Apple Developer account.
-Provide separate distribution profiles for broker and client, both authorizing
-that group, and an Apple Distribution identity.
+Provide separate manually managed distribution profiles for broker and client,
+both authorizing that group, and an Apple Distribution identity.
+Xcode-managed profiles from automatic export cannot be substituted into this
+manual archive command.
 Set
 `KEYHATCH_TEAM`, `KEYHATCH_BUNDLE_ID`, `KEYHATCH_APP_GROUP`, `KEYHATCH_BROKER_PROFILE`, and `KEYHATCH_CLIENT_PROFILE`,
 then run:
@@ -110,10 +117,11 @@ bash scripts/archive-store.sh
 ```
 
 This archives locally, without automatic account provisioning or submission.
-The validator checks signatures and
-team/identifier consistency. It also checks sandbox/group entitlements and
-provisioning profiles, including their platform, type, expiry, application IDs
-and signing certificates.
+The archive script uses `--static-only`: it validates signatures and
+team/identifier consistency without launching archive executables. It also checks sandbox/group
+entitlements and provisioning profiles, including their platform, type, expiry,
+application IDs and signing certificates for every Mach-O architecture.
+A valid signature alone does not establish safe entitlements in another slice.
 
 The broker gets outgoing networking for the explicit identity check.
 The client has only sandbox and App Group capabilities.
@@ -121,8 +129,34 @@ Neither gets broad filesystem permissions, inbound TCP, Apple Events, sandbox
 inheritance, or runtime exceptions.
 The importer is absent from the Store package.
 
+### Runtime test location
+
+Use an isolated, provisioned development copy under `/Applications` for signed
+Store runtime testing.
+Do not overwrite an existing installation.
+The independently sandboxed nested client can read its own bundle, but cannot
+read the enclosing broker in arbitrary build directories or `~/Applications`.
+On the validation Mac, both reads failed with `EPERM`; the unchanged package
+passed installation verification and authenticated IPC under `/Applications`.
+No filesystem exception entitlement was added.
+
+Run the embedded client's `verify-installation`, then test the GUI and client
+together with synthetic data.
+`Tests/test-store-sandbox.py --help` describes the opt-in signed probe for App
+Group access, private-file isolation, outbound loopback denial and rejection of
+a changed client executable.
+It uses only a fresh disposable app copy; the original test broker must be
+locked.
+Static archive validation alone does not establish runtime behavior.
+App Store distribution signatures may also require Store installation before
+execution, so do not use a failed archive launch as evidence that its static
+signatures are invalid.
+
 Xcode Organizer provides the separate App Store export/upload workflow and
 appropriate installer signing.
+A local export uses `destination=export`; `destination=upload` is a separate
+release action. macOS installer export needs a Mac Installer Distribution
+certificate in addition to Apple Distribution.
 The direct notarization script is not used for Store submission.
 
 Production bundle trust derives current embedded code hashes after signature
@@ -134,17 +168,20 @@ Actual downloaded Store signature behavior is not yet verified.
 
 ## Remaining release gates
 
-- Sign and archive with actual identities, groups and profiles.
-  The generated project has passed an unsigned Xcode 27.0 archive and bundle
-  layout checks.
-  This does not establish provisioning or sandbox behavior.
-- Exercise the signed Store app and Terminal client together: group container
-  creation, path length, socket access, peer authentication, private storage
-  isolation, Git output, and denial of `run`.
+- Review the signed local packages before release.
+  Apple Development archives, Developer ID package validation, and Apple
+  Distribution installer export have passed their respective local checks.
+  No submission or notarization has been performed.
+- Extend the signed development runtime evidence to the actual distributed Store
+  app.
+  Development checks cover group/socket access, authenticated IPC, synthetic Git
+  output, denial of `run`, wrong-build client rejection, denied access to a
+  broker-private synthetic file and denied outbound loopback access.
   There is no fallback to guessed container paths or legacy storage on failure.
-- Test native import, biometric success/cancel, lock/revocation, sleep/expiry,
-  deletion and upgrade with deliberately selected test credentials.
-  Compilation does not establish Secure Enclave or sandbox behavior.
+- Extend native
+  sleep/expiry and upgrade coverage with synthetic records. Signed development import, biometric unlock, per-record approval, repeated retrieval, cross-host denial, revocation, lock and deletion passed. A failed/cancelled
+  authentication attempt preserved locked denial.
+  Do not extrapolate these checks to every lifecycle or OS version.
 - Supply final app icon/assets, production identity/version metadata, support
   contact, hosted privacy policy URL, App Store Connect privacy answers,
   screenshots, and transparent review instructions explaining credential handoff

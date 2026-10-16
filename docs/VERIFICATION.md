@@ -1,5 +1,77 @@
 # Verification record
 
+## Signed packaging and sandbox validation — 2026-10-15
+
+- Apple Developer membership and Certificates, Identifiers & Profiles access
+  became active.
+  Created approved Apple Development, Apple Distribution, Developer ID
+  Application and Mac Installer Distribution certificates, keeping their private
+  keys in this Mac's Keychain.
+  No existing certificate was revoked.
+- Configured explicit broker and client identifiers, a dedicated provisioned App
+  Group, and separate development and distribution profiles.
+  Signing material is outside Git.
+  Fixed generated Xcode capability declarations and enabled App Group
+  registration so automatic provisioning obtains explicit profiles.
+- Xcode 27.0 built a universal Apple Development archive.
+  Local App Store export succeeded with Apple Distribution signatures and a Mac
+  Installer Distribution installer signature.
+  `pkgutil --check-signature` verified its Apple-issued installer chain; strict
+  all-architecture nested-code validation, exact entitlements, profile
+  identity/group/certificate matching and privacy resources passed on the
+  extracted payload.
+  The installer was not installed.
+  The repository's manual archive command also passed using two separately
+  generated, manually managed distribution profiles.
+- A universal Developer ID package passed publisher, secure-timestamp, Hardened
+  Runtime, resource and executing-client validation.
+  It was not notarized or installed as the live credential deployment.
+- Fixed release-validator compatibility with current `codesign`: explicitly
+  request XML entitlements and use the certificate extraction prefix's `=`
+  syntax.
+  Entitlement extraction and rejection regressions passed.
+- A separate review found that signature validity across architectures did not
+  establish matching entitlements or identities.
+  The validator now inspects every Mach-O slice, including exact Store
+  application/team entitlements and the profile's authorized signer.
+  Real universal-binary regressions rejected an extra entitlement, missing
+  Hardened Runtime and wrong identifier confined to the non-native slice, while
+  all cryptographic signatures remained valid.
+  Both Store artifacts and the Developer ID package passed the stricter checks.
+- Separated static archive checks (`--static-only`, explicitly reported) from
+  executing-client checks.
+  The signed nested client could not read its enclosing broker under `.build` or
+  `~/Applications` (`EPERM`).
+  An unchanged isolated copy under `/Applications` passed.
+  No sandbox exception or trust bypass was added; the CLI now explains this
+  location requirement on installation-check failure.
+- Using the signed development copy under `/Applications`, native synthetic
+  import and Touch ID unlock succeeded.
+  The broker and client authenticated in both directions; retrieval was denied
+  while locked and before approval.
+  Explicit per-record approval allowed three exact synthetic Git handoffs;
+  cross-host requests were denied.
+  No secret output was logged and no remote authentication request was made.
+- Native revocation denied further retrieval; CLI lock returned the broker to
+  locked denial.
+  A subsequent failed/cancelled authentication attempt left the encrypted data
+  intact and retrieval locked.
+  Native deletion removed the synthetic record and history, leaving the new
+  sandbox store empty.
+- The opt-in signed sandbox harness passed: App Group scratch write/removal,
+  denied open of the known synthetic file in the broker's private container,
+  denied outbound loopback connection with an unsandboxed positive control, and
+  immediate rejection of a changed, validly signed client executable by the
+  authenticated original broker.
+  The broker stayed responsive and locked.
+  Probe signatures used unchanged client entitlements; the disposable probe
+  bundle was removed.
+- These runtime results cover arm64 on this Mac and development provisioning.
+  They do not establish App Store
+  download/re-sign behavior, x86_64 runtime, all supported macOS versions, native sleep/expiry/upgrade coverage, or review acceptance. Earlier deterministic expiry/rollback
+  checks remain separate evidence.
+  No real credential installation or helper routing was replaced.
+
 ## Full Xcode archive validation — 2026-10-15
 
 - Xcode 27.0 (27A266a) completed first-launch setup and recognized the Store

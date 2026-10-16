@@ -24,12 +24,26 @@ def read_plist(path):
         return plistlib.load(stream)
 
 
-def inspect(path):
+def architectures(path):
+    executable = path
+    if path.is_dir():
+        name = read_plist(path / "Contents/Info.plist").get("CFBundleExecutable", "")
+        require(isinstance(name, str) and bool(name) and name not in (".", "..") and
+                "/" not in name, "Invalid bundle executable")
+        executable = path / "Contents/MacOS" / name
+    result = command("lipo", "-archs", executable).stdout.decode().split()
+    require(bool(result) and len(set(result)) == len(result) and
+            all(re.fullmatch(r"[A-Za-z0-9_]+", arch) for arch in result), "Invalid Mach-O architectures")
+    return result
+
+
+def inspect(path, architecture=None):
     command("codesign", "--verify", "--strict", "--all-architectures", "--deep", path)
-    detail = command("codesign", "-d", "--verbose=4", path).stderr.decode()
+    selection = ["--arch", architecture] if architecture else []
+    detail = command("codesign", "-d", *selection, "--verbose=4", path).stderr.decode()
     flags = re.search(r"flags=0x([0-9a-fA-F]+)", detail)
     require(flags is not None and int(flags[1], 16) & 0x10000, "Hardened Runtime missing: " + path.name)
-    result = command("codesign", "-d", "--entitlements", "-", path)
+    result = command("codesign", "-d", *selection, "--entitlements", "-", "--xml", path)
     entitlements = plistlib.loads(result.stdout) if result.stdout.strip() else {}
     forbidden = {"com.apple.security.get-task-allow", "com.apple.security.inherit",
                  "com.apple.security.cs.disable-library-validation",
@@ -39,7 +53,7 @@ def inspect(path):
     return detail, entitlements
 
 
-def profile_matches(app, bundle_id, team, group):
+def profile_matches(app, bundle_id, team, group, architecture):
     profile = app / "Contents/embedded.provisionprofile"
     require(profile.is_file(), "Missing embedded distribution provisioning profile: " + app.name)
     data = plistlib.loads(command("security", "cms", "-D", "-i", profile).stdout)
@@ -58,12 +72,12 @@ def profile_matches(app, bundle_id, team, group):
             not entitlements.get("com.apple.security.get-task-allow", False), "Development profile in release")
     with tempfile.TemporaryDirectory(prefix="keyhatch-cert-check-") as directory:
         prefix = Path(directory) / "signer"
-        command("codesign", "-d", "--extract-certificates", prefix, app)
+        command("codesign", "-d", "--arch", architecture, "--extract-certificates=" + str(prefix), app)
         leaf = Path(str(prefix) + "0").read_bytes()
         require(leaf in data.get("DeveloperCertificates", []), "Signer is not authorized by profile")
 
 
-def validate(app, channel):
+def validate(app, channel, *, check_runtime=True):
     require(app.is_dir() and app.suffix == ".app", "Expected an app bundle")
     info = read_plist(app / "Contents/Info.plist")
     require(info.get("KeyhatchDistribution") == channel, "Distribution mismatch")
@@ -93,52 +107,65 @@ def validate(app, channel):
         require(re.fullmatch(r"[A-Z0-9]{10}", team), "Missing developer team")
         require(not bundle_id.startswith(("local.", "com.example.")), "Placeholder bundle identifier")
     for path, identifier, role in items:
-        detail, entitlements = inspect(path)
-        require("Identifier=" + identifier + "\n" in detail, "Code identifier mismatch: " + role)
-        if channel == "development":
-            require("Signature=adhoc" in detail and not entitlements, "Development signing mismatch")
-            continue
-        require("TeamIdentifier=" + team + "\n" in detail, "Code team mismatch: " + role)
-        requirement = "anchor apple generic"
-        if channel == "direct":
-            requirement += (' and certificate leaf[subject.OU] = "' + team +
-                            '" and certificate 1[field.1.2.840.113635.100.6.2.6] exists'
-                            ' and certificate leaf[field.1.2.840.113635.100.6.1.13] exists')
-            require("Timestamp=" in detail, "Missing secure signing timestamp")
-            require(not entitlements, "Unexpected direct-channel entitlement")
-        else:
-            require(any("Authority=" + prefix in detail for prefix in
-                        ("Apple Distribution:", "3rd Party Mac Developer Application:", "Mac App Distribution:")),
-                    "Expected a Mac App Store distribution signing identity")
-            group = info.get("KeyhatchAppGroup", "")
-            require(bool(group) and "$" not in group, "Unresolved App Group")
-            require(entitlements.get("com.apple.security.app-sandbox") is True, "Sandbox missing")
-            require(entitlements.get("com.apple.security.application-groups") == [group], "Group mismatch")
-            allowed = {"com.apple.security.app-sandbox", "com.apple.security.application-groups",
-                       "com.apple.application-identifier", "com.apple.developer.team-identifier"}
-            if role == "broker":
-                allowed.add("com.apple.security.network.client")
-                require(entitlements.get("com.apple.security.network.client") is True, "HTTPS entitlement missing")
-            require(set(entitlements) <= allowed, "Unexpected Store entitlement: " + role)
-            profile_matches(path, identifier, team, group)
-        command("codesign", "--verify", "--strict", "--all-architectures", "-R=" + requirement, path)
+        # Signature validity across slices does not establish equal entitlements,
+        # identities or signers. Inspect every slice rather than the host default.
+        for architecture in architectures(path):
+            detail, entitlements = inspect(path, architecture)
+            require("Identifier=" + identifier + "\n" in detail, "Code identifier mismatch: " + role)
+            if channel == "development":
+                require("Signature=adhoc" in detail and not entitlements, "Development signing mismatch")
+                continue
+            require("TeamIdentifier=" + team + "\n" in detail, "Code team mismatch: " + role)
+            requirement = "anchor apple generic"
+            if channel == "direct":
+                requirement += (' and certificate leaf[subject.OU] = "' + team +
+                                '" and certificate 1[field.1.2.840.113635.100.6.2.6] exists'
+                                ' and certificate leaf[field.1.2.840.113635.100.6.1.13] exists')
+                require("Timestamp=" in detail, "Missing secure signing timestamp")
+                require(not entitlements, "Unexpected direct-channel entitlement")
+            else:
+                require(any("Authority=" + prefix in detail for prefix in
+                            ("Apple Distribution:", "3rd Party Mac Developer Application:", "Mac App Distribution:")),
+                        "Expected a Mac App Store distribution signing identity")
+                group = info.get("KeyhatchAppGroup", "")
+                require(bool(group) and "$" not in group, "Unresolved App Group")
+                require(entitlements.get("com.apple.security.app-sandbox") is True, "Sandbox missing")
+                require(entitlements.get("com.apple.security.application-groups") == [group], "Group mismatch")
+                require(entitlements.get("com.apple.application-identifier") == team + "." + identifier,
+                        "Signed application identifier mismatch: " + role)
+                require(entitlements.get("com.apple.developer.team-identifier") == team,
+                        "Signed team entitlement mismatch: " + role)
+                allowed = {"com.apple.security.app-sandbox", "com.apple.security.application-groups",
+                           "com.apple.application-identifier", "com.apple.developer.team-identifier"}
+                if role == "broker":
+                    allowed.add("com.apple.security.network.client")
+                    require(entitlements.get("com.apple.security.network.client") is True, "HTTPS entitlement missing")
+                require(set(entitlements) <= allowed, "Unexpected Store entitlement: " + role)
+                profile_matches(path, identifier, team, group, architecture)
+            command("codesign", "--verify", "--strict", "--arch", architecture, "-R=" + requirement, path)
     # This command validates the executing client's relationship to its sealed
     # containing app. It never connects to the broker or reads credentials.
-    command(client, "verify-installation")
+    if check_runtime:
+        command(client, "verify-installation")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("app", type=Path)
     parser.add_argument("--channel", required=True, choices=("development", "direct", "app-store"))
+    parser.add_argument("--static-only", action="store_true",
+                        help="Validate archive signatures and resources without launching code; runtime remains a separate gate")
     args = parser.parse_args()
     try:
-        validate(args.app.resolve(), args.channel)
+        validate(args.app.resolve(), args.channel, check_runtime=not args.static_only)
     except (ValueError, OSError, subprocess.CalledProcessError, plistlib.InvalidFileException) as error:
         # No credentials or profile contents belong in release diagnostics.
         parser.exit(1, "Release validation failed: " + (str(error) if isinstance(error, ValueError)
                                                        else type(error).__name__) + "\n")
-    print("PASS: signed package, identity, entitlements, privacy and embedded client validation")
+    if args.static_only:
+        print("PASS: static signed package, identity, entitlements and privacy validation. Runtime NOT checked.")
+    else:
+        print("PASS: signed package, identity, entitlements, privacy and embedded client validation")
 
 
 if __name__ == "__main__":
